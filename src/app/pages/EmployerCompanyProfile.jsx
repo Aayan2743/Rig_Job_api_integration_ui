@@ -1,26 +1,54 @@
 import { Link } from 'react-router-dom';
-import { Building2, Globe, MapPin, Mail, Phone, Users, ShieldCheck, ChevronRight } from 'lucide-react';
+import { Building2, Globe, MapPin, Mail, Phone, Users, ShieldCheck, ChevronRight,X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
+import api from '../../utils/api';
+import { showSuccess, showError, showLoading, closeAlert } from "../../utils/alert";
 
 export function EmployerCompanyProfile() {
   const { user } = useAuth();
   const PROFILE_KEY = user?.email ? `rwj_company_public_profile:${user.email}` : null;
 
+  const [loading, setLoading] = useState(true);
+
+  const [industries, setIndustries] = useState([]);
+  const [error, setError] = useState("");
+
+  // const [form, setForm] = useState({
+  //   companyName: 'Shell Energy',
+  //   tagline: 'Powering progress with responsible energy.',
+  //   industry: 'Oil & Gas',
+  //   website: 'https://www.shell.com',
+  //   hq: 'Houston, TX',
+  //   size: '10,000+',
+  //   email: 'careers@shellenergy.com',
+  //   phone: '+1 (800) RIG-JOBS',
+  //   about:
+  //     'Shell Energy is a global energy leader focused on safe, reliable operations and building the workforce of tomorrow. We hire engineers, operations specialists, HSE leaders, and technical professionals for onshore and offshore roles worldwide.',
+  //   compliance: 'ISO 45001, ISO 14001, IADC, OPITO',
+  // });
+
   const [form, setForm] = useState({
-    companyName: 'Shell Energy',
-    tagline: 'Powering progress with responsible energy.',
-    industry: 'Oil & Gas',
-    website: 'https://www.shell.com',
-    hq: 'Houston, TX',
-    size: '10,000+',
-    email: 'careers@shellenergy.com',
-    phone: '+1 (800) RIG-JOBS',
-    about:
-      'Shell Energy is a global energy leader focused on safe, reliable operations and building the workforce of tomorrow. We hire engineers, operations specialists, HSE leaders, and technical professionals for onshore and offshore roles worldwide.',
-    compliance: 'ISO 45001, ISO 14001, IADC, OPITO',
-  });
+  companyName: "",
+  tagline: "",
+  industry: "",
+  website: "",
+  hq: "",
+  size: "",
+  email: "",
+  phone: "",
+  about: "",
+  compliance: "",
+
+  contactPerson: "",
+  password: "",
+  founded: "",
+
+  culture_values: [],
+  benefits_perks: [],
+  social_links: [],
+});
 
   const onChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -29,32 +57,129 @@ export function EmployerCompanyProfile() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Load previously saved public details (localStorage) for this company.
   useEffect(() => {
-    if (!PROFILE_KEY) return;
-    try {
-      const raw = localStorage.getItem(PROFILE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === "object") {
-        setForm(prev => ({ ...prev, ...parsed }));
-      }
-    } catch {
-      // If localStorage is corrupted/unavailable, fall back to defaults.
-    }
-  }, [PROFILE_KEY]);
+  api.get("/admin/industries")
+    .then(res => {
+      setIndustries(res.data.data);
+    })
+    .catch(err => console.error(err));
+}, []);
 
-  const handleUpdate = () => {
-    if (!PROFILE_KEY) return;
+  // Load previously saved public details (localStorage) for this company.
+useEffect(() => {
+  api.get("/employeer/mycompany")
+    .then(res => {
+      const c = res.data.data;
+
+      setForm({
+        companyName: c.company_name || "",
+        tagline: c.tagline || "",
+        industry: c.industry_id || "",
+        website: c.website || "",
+        hq: c.headquarters || "",
+        size: c.company_size || "",
+        
+        email: c.company_email || "",
+          contactPerson: c.contact_person || "", // ✅ IMPORTANT
+        phone: c.phone || "",
+        about: c.message || "",
+        founded: c.founded || "",
+        compliance: c.compliance_certifications || "",
+
+
+        culture_values: Array.isArray(c.culture_values) ? c.culture_values : [],
+  benefits_perks: Array.isArray(c.benefits_perks) ? c.benefits_perks : [],
+  social_links: Array.isArray(c.social_links) ? c.social_links : [],
+      });
+    })
+    .catch(err => {
+      console.error("Company fetch error:", err);
+    });
+}, []);
+
+
+const handleUpdate = async () => {
+  try {
     setSaving(true);
-    try {
-      localStorage.setItem(PROFILE_KEY, JSON.stringify(form));
+
+    showLoading("Updating...");
+
+    const formData = new FormData();
+
+    // ✅ Basic fields
+    formData.append("company_name", form.companyName || "");
+    formData.append("contact_person", form.contactPerson || "");
+    formData.append("email", form.email || "");
+    formData.append("password", form.password || "");
+
+    formData.append("phone", form.phone || "");
+    formData.append("website", form.website || "");
+    formData.append("industry_id", form.industry || "");
+
+    formData.append("message", form.about || "");
+    formData.append("tagline", form.tagline || "");
+    formData.append("company_size", form.size || "");
+    formData.append("headquarters", form.hq || "");
+    formData.append("company_email", form.email || "");
+    formData.append("founded", form.founded || "");
+    formData.append("compliance_certifications", form.compliance || "");
+
+    // ✅ Arrays (IMPORTANT 🔥)
+    (form.culture_values || []).forEach((v, i) => {
+      formData.append(`culture_values[${i}]`, v);
+    });
+
+    (form.benefits_perks || []).forEach((v, i) => {
+      formData.append(`benefits_perks[${i}]`, v);
+    });
+
+    (form.social_links || []).forEach((v, i) => {
+      formData.append(`social_links[${i}]`, v);
+    });
+
+    // ✅ API call
+    const res = await api.post(
+      `/employeer/update-company`, // ⚠️ replace with your company id
+      formData
+    );
+
+     closeAlert();
+
+    if (res.data.success) {
       setSaved(true);
+      showSuccess("Company updated successfully");
       setTimeout(() => setSaved(false), 2500);
-    } finally {
-      setSaving(false);
     }
-  };
+
+  }
+  
+  catch (err) {
+  console.error(err);
+  closeAlert();
+
+  showError(
+      err.response?.data?.errors ||
+      err.response?.data?.message
+    );
+
+  // ✅ GET BACKEND ERROR
+  const msg =
+    err.response?.data?.errors ||
+    err.response?.data?.message ||
+    "Something went wrong";
+
+  setError(msg);
+} 
+  
+  
+  
+  finally {
+    setSaving(false);
+  }
+};
+
+
+
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-7">
@@ -91,12 +216,20 @@ export function EmployerCompanyProfile() {
 
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">Industry</label>
-                <input
+               <select
                   name="industry"
                   value={form.industry}
                   onChange={onChange}
-                  className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary bg-white text-sm transition-all"
-                />
+                  className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary bg-white text-sm transition-all appearance-none"
+                >
+                  <option value="">Select Industry...</option>
+
+                  {industries.map((i) => (
+                    <option key={i.id} value={i.id}>
+                      {i.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -164,6 +297,150 @@ export function EmployerCompanyProfile() {
                 </div>
               </div>
 
+
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">Contact Person</label>
+                <input
+                  name="contactPerson"
+                  value={form.contactPerson}
+                  onChange={onChange}
+                  className="w-full px-4 py-3 border border-border rounded-xl bg-white text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">Founded Year</label>
+                <input
+                  name="founded"
+                  value={form.founded}
+                  onChange={onChange}
+                  placeholder="2024"
+                  className="w-full px-4 py-3 border border-border rounded-xl bg-white text-sm"
+                />
+              </div>
+
+
+                  <div>
+  <label className="block text-sm font-semibold mb-2">Culture Values</label>
+
+  <div className="flex flex-wrap gap-2 mb-2">
+    {form.culture_values.map((v, i) => (
+      <span key={i} className="bg-secondary/10 px-3 py-1 rounded-full text-xs flex items-center gap-1">
+        {v}
+        <X className="w-3 cursor-pointer"
+          onClick={() =>
+            setForm(prev => ({
+              ...prev,
+              culture_values: prev.culture_values.filter((_, idx) => idx !== i)
+            }))
+          }
+        />
+      </span>
+    ))}
+  </div>
+
+  <input
+    placeholder="Type and press Enter"
+    onKeyDown={(e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const val = e.target.value.trim();
+        if (val) {
+          setForm(prev => ({
+            ...prev,
+            culture_values: [...prev.culture_values, val]
+          }));
+          e.target.value = "";
+        }
+      }
+    }}
+    className="w-full px-4 py-2 border rounded-xl"
+  />
+</div>
+
+
+<div>
+  <label className="block text-sm font-semibold mb-2">Benefits & Perks</label>
+
+  <div className="flex flex-wrap gap-2 mb-2">
+    {form.benefits_perks.map((v, i) => (
+      <span key={i} className="bg-green-100 px-3 py-1 rounded-full text-xs flex items-center gap-1">
+        {v}
+        <X className="w-3 cursor-pointer"
+          onClick={() =>
+            setForm(prev => ({
+              ...prev,
+              benefits_perks: prev.benefits_perks.filter((_, idx) => idx !== i)
+            }))
+          }
+        />
+      </span>
+    ))}
+  </div>
+
+  <input
+    placeholder="Add benefit"
+    onKeyDown={(e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const val = e.target.value.trim();
+        if (val) {
+          setForm(prev => ({
+            ...prev,
+            benefits_perks: [...prev.benefits_perks, val]
+          }));
+          e.target.value = "";
+        }
+      }
+    }}
+    className="w-full px-4 py-2 border rounded-xl"
+  />
+</div>
+
+
+
+<div>
+  <label className="block text-sm font-semibold mb-2">Social Links</label>
+
+  {form.social_links.map((link, i) => (
+    <div key={i} className="flex gap-2 mb-2">
+      <input
+        value={link}
+        onChange={(e) => {
+          const updated = [...form.social_links];
+          updated[i] = e.target.value;
+          setForm(prev => ({ ...prev, social_links: updated }));
+        }}
+        className="flex-1 px-3 py-2 border rounded-xl"
+      />
+      <button
+        onClick={() =>
+          setForm(prev => ({
+            ...prev,
+            social_links: prev.social_links.filter((_, idx) => idx !== i)
+          }))
+        }
+      >
+        <X className="w-4" />
+      </button>
+    </div>
+  ))}
+
+  <button
+    onClick={() =>
+      setForm(prev => ({
+        ...prev,
+        social_links: [...prev.social_links, ""]
+      }))
+    }
+    className="text-sm text-blue-600"
+  >
+    + Add Link
+  </button>
+</div>
+
+
+
               <div className="sm:col-span-2">
                 <label className="block text-sm font-semibold text-foreground mb-2">About</label>
                 <textarea
@@ -188,6 +465,13 @@ export function EmployerCompanyProfile() {
                   />
                 </div>
               </div>
+
+            {/* {error && (
+  <div className="w-full px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-semibold">
+    {error}
+  </div>
+)} */}
+
 
               <div className="sm:col-span-2 mt-6 flex items-center gap-3 flex-wrap">
                 <button

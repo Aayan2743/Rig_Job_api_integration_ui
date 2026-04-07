@@ -1,15 +1,11 @@
-import { useState } from 'react';
+import { useState,useEffect  } from 'react';
 import { User, Lock, Eye, EyeOff, Save, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 
-const USERS_KEY = 'rwj_users';
+import api from "../../utils/api";
+import { showSuccess, showError, showLoading, closeAlert } from "../../utils/alert";
 
-function getUsers() {
-  try { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch { return []; }
-}
-function saveUsers(users) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
+
 
 export default function EmployerSettings() {
   const { user } = useAuth();
@@ -30,39 +26,84 @@ export default function EmployerSettings() {
     setTimeout(() => setSaved(false), 2500);
   };
 
-  const saveAccount = (e) => {
-    e.preventDefault();
-    const users = getUsers();
-    saveUsers(users.map(u => u.email === user?.email ? { ...u, name: account.name } : u));
-    showToast();
-  };
 
-  const savePassword = (e) => {
-    e.preventDefault();
-    setSecError('');
-    const users = getUsers();
-    const current = users.find(u => u.email === user?.email);
-    if (!current || current.password !== security.oldPassword) {
-      setSecError('Current password is incorrect.');
-      return;
-    }
-    if (security.newPassword.length < 6) {
-      setSecError('New password must be at least 6 characters.');
-      return;
-    }
-    if (security.newPassword !== security.confirm) {
-      setSecError('Passwords do not match.');
-      return;
-    }
-    saveUsers(users.map(u => u.email === user?.email ? { ...u, password: security.newPassword } : u));
-    setSecurity({ oldPassword: '', newPassword: '', confirm: '' });
-    showToast();
-  };
+
+
 
   const tabs = [
     { id: 'account', label: 'Account', icon: User },
     { id: 'security', label: 'Security', icon: Lock },
   ];
+
+
+  useEffect(() => {
+  api.get("/employeer/settings")
+    .then(res => {
+      const data = res.data.data;
+
+      setAccount({
+        name: data.name || "",
+        email: data.email || "",
+      });
+    })
+    .catch(err => {
+      showError(err.response?.data?.message);
+    });
+}, []);
+
+
+const saveAccount = async (e) => {
+  e.preventDefault();
+
+  try {
+    showLoading("Updating...");
+
+    const res = await api.post("/employeer/settings", {
+      name: account.name,
+    });
+
+    closeAlert();
+
+    if (res.data.success) {
+      showSuccess("Profile updated successfully");
+    }
+
+  } catch (err) {
+    closeAlert();
+    showError(err.response?.data?.errors || err.response?.data?.message);
+  }
+};
+
+
+const savePassword = async (e) => {
+  e.preventDefault();
+
+  try {
+    showLoading("Updating password...");
+
+    const res = await api.post("/employeer/settings/change-password", {
+      current_password: security.oldPassword,
+      new_password: security.newPassword,
+      confirm_password: security.confirm,
+    });
+
+    closeAlert();
+
+    if (res.data.success) {
+      showSuccess("Password updated successfully");
+
+      setSecurity({
+        oldPassword: "",
+        newPassword: "",
+        confirm: "",
+      });
+    }
+
+  } catch (err) {
+    closeAlert();
+    showError(err.response?.data?.errors || err.response?.data?.message);
+  }
+};
 
   return (
     <div className="space-y-6 max-w-2xl">

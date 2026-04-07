@@ -11,7 +11,7 @@ const navItems = [
   { icon: FileText,   label: 'Company Profile',  to: '/company/company-profile' },
   { icon: Bell,       label: 'Notifications',    to: '/company/notifications' },
   { icon: Settings,   label: 'Settings',         to: '/company/settings' },
-  { icon: FileText,   label: 'Contact Us',       to: '/company/contact-us' },
+  // { icon: FileText,   label: 'Contact Us',       to: '/company/contact-us' },
 ];
 
 export function CompanyLayout() {

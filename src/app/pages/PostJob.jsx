@@ -1,9 +1,13 @@
 import { useState,useEffect  } from 'react';
-import { Link } from 'react-router-dom';
-import { Briefcase, MapPin, DollarSign, CheckCircle, ArrowRight, Plus, X } from 'lucide-react';
+// import { Link } from 'react-router-dom';
+import { Briefcase, MapPin, DollarSign, CheckCircle, ArrowRight, Plus, X ,Clock} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useJobs } from '../context/JobsContext.jsx';
 import api from '../../utils/api';
+import { Link, useParams } from 'react-router-dom';
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
+
 
 const steps = ['Job Details', 'Requirements', 'Preview & Post'];
 
@@ -11,8 +15,13 @@ const jobTypes = ['Full-time', 'Part-time', 'Contract', 'Temporary', 'Internship
 const experienceLevels = ['Entry Level (0–2 yrs)', 'Mid Level (2–5 yrs)', 'Senior (5+ yrs)', 'Executive (10+ yrs)'];
 const categories = ['Engineering', 'Safety & HSE', 'Operations', 'Management', 'Technical Support', 'Logistics'];
 
+
+
+
 export function PostJob() {
   const { addJob } = useJobs();
+  const { id } = useParams();
+const isEdit = !!id;
 
   const [categories, setCategories] = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
@@ -25,6 +34,35 @@ export function PostJob() {
     category: '', salaryMin: '', salaryMax: '', description: '',
     experience: '', requirements: '', benefits: '', dead_line: '',
   });
+
+
+  const [benefits, setBenefits] = useState([]);
+const [benefitInput, setBenefitInput] = useState('');
+
+
+const addBenefit = () => {
+  const b = benefitInput.trim();
+  if (b && !benefits.includes(b)) {
+    setBenefits([...benefits, b]);
+    setBenefitInput('');
+  }
+};
+
+
+const removeBenefit = (b) => {
+  setBenefits(prev => prev.filter(item => item !== b));
+};
+
+// ✅ place OUTSIDE functions
+const modules = {
+  toolbar: [
+    [{ header: [1, 2, false] }],
+    ["bold", "italic", "underline"],
+    ["list", "bullet"],
+    ["link"],
+    ["clean"],
+  ],
+};
 
   // const handleChange = (e) =>
   //   setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -51,13 +89,42 @@ export function PostJob() {
 }, []);
 
 
+useEffect(() => {
+  if (isEdit) {
+    api.get(`/employeer/jobs/${id}`).then(res => {
+      const job = res.data.data;
+
+      setForm({
+        title: job.title || '',
+        company: job.company || 'Shell Energy',
+        location: job.location || '',
+        type: job.job_type || 'Full-time',
+        category: job.category_id || '',
+        salaryMin: job.salary_min || '',
+        salaryMax: job.salary_max || '',
+        description: job.description || '',
+        experience: job.experience_level || '',
+        requirements: job.requirements || '',
+      // benefits: benefits,
+        // dead_line: job.dead_line?.slice(0,16) || '',
+       dead_line: job.dead_line
+  ? job.dead_line.replace(" ", "T").slice(0, 16)
+  : "",
+      });
+      setBenefits(Array.isArray(job.benefits) ? job.benefits : []);
+
+      setSkills(job.skills || []);
+    });
+  }
+}, [id]);
+
   const handleSubmit = async () => {
   try {
     const payload = {
       title: form.title,
       location: form.location,
       job_type: form.type,
-      category_id: 1, // ⚠️ replace with real ID from dropdown
+     category_id: form.category, // ⚠️ replace with real ID from dropdown
       experience_level: form.experience,
       salary_min: Number(form.salaryMin) || 0,
       salary_max: Number(form.salaryMax) || 0,
@@ -66,16 +133,22 @@ export function PostJob() {
       responsibilities: form.requirements, // (or separate field if you add)
       dead_line: new Date().toISOString(),
       skills: skills,
-      benefits: form.benefits
-        ? form.benefits.split("\n") // convert textarea → array
-        : [],
+    benefits: benefits,
       dead_line: new Date(form.dead_line)
   .toISOString()
   .slice(0, 19)
   .replace("T", " "),
     };
 
-    const res = await api.post("/employeer/jobs", payload);
+    // const res = await api.post("/employeer/jobs", payload);
+
+    let res;
+
+if (isEdit) {
+  res = await api.put(`/employeer/jobs/${id}`, payload);
+} else {
+  res = await api.post("/employeer/jobs", payload);
+}
 
     if (res.data.success) {
       setPosted(true);
@@ -216,12 +289,29 @@ export function PostJob() {
                       </div>
                     </div>
                   </div>
-                  <div className="sm:col-span-2">
+                  {/* <div className="sm:col-span-2">
                     <label className="block text-sm font-semibold text-foreground mb-2">Job Description *</label>
                     <textarea name="description" value={form.description} onChange={handleChange} rows={5}
                       placeholder="Describe the role, team, and what makes this opportunity exciting..."
                       className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary bg-white text-sm transition-all resize-none" />
-                  </div>
+                  </div> */}
+
+                  <div className="sm:col-span-2">
+          <label className="block text-sm font-semibold text-foreground mb-2">
+            Job Description *
+          </label>
+
+          <div className="border border-border rounded-xl bg-white">
+            <ReactQuill
+              theme="snow"
+              value={form.description}
+              onChange={(value) =>
+                setForm((prev) => ({ ...prev, description: value }))
+              }
+              className="rounded-xl"
+            />
+          </div>
+        </div>
                 </div>
               </div>
             </motion.div>
@@ -233,12 +323,29 @@ export function PostJob() {
               <div className="bg-white rounded-2xl border border-border/60 p-6 shadow-sm">
                 <h2 className="text-xl font-bold text-foreground mb-5">Requirements & Skills</h2>
                 <div className="space-y-5">
-                  <div>
+                  {/* <div>
                     <label className="block text-sm font-semibold text-foreground mb-2">Requirements</label>
                     <textarea name="requirements" value={form.requirements} onChange={handleChange} rows={5}
                       placeholder="List key requirements, one per line:&#10;• Bachelor's degree in Petroleum Engineering&#10;• 5+ years of drilling experience&#10;• Proficiency in WellPlan software"
                       className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary bg-white text-sm transition-all resize-none" />
-                  </div>
+                  </div> */}
+
+                  <div>
+  <label className="block text-sm font-semibold text-foreground mb-2">
+    Requirements
+  </label>
+
+  <div className="border border-border rounded-xl bg-white">
+    <ReactQuill
+      theme="snow"
+      value={form.requirements}
+      modules={modules}
+      onChange={(value) =>
+        setForm((prev) => ({ ...prev, requirements: value }))
+      }
+    />
+  </div>
+</div>
                   <div>
                     <label className="block text-sm font-semibold text-foreground mb-2">Required Skills</label>
                     <div className="flex flex-wrap gap-2 mb-3">
@@ -260,12 +367,57 @@ export function PostJob() {
                       </button>
                     </div>
                   </div>
-                  <div>
+                  {/* <div>
                     <label className="block text-sm font-semibold text-foreground mb-2">Benefits & Perks</label>
                     <textarea name="benefits" value={form.benefits} onChange={handleChange} rows={4}
                       placeholder="List benefits, one per line:&#10;• Competitive salary + bonuses&#10;• Comprehensive health insurance&#10;• 25 days PTO"
                       className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary bg-white text-sm transition-all resize-none" />
-                  </div>
+                  </div> */}
+
+                  <div>
+  <label className="block text-sm font-semibold text-foreground mb-2">
+    Benefits & Perks
+  </label>
+
+  {/* Chips */}
+  <div className="flex flex-wrap gap-2 mb-3">
+    {benefits.map(b => (
+      <span
+        key={b}
+        className="inline-flex items-center space-x-1.5 bg-secondary/10 text-secondary px-3 py-1.5 rounded-full text-xs font-semibold border border-secondary/20"
+      >
+        <span>{b}</span>
+        <button onClick={() => removeBenefit(b)}>
+          <X className="w-3 h-3" />
+        </button>
+      </span>
+    ))}
+  </div>
+
+  {/* Input */}
+  <div className="flex space-x-2">
+    <input
+      value={benefitInput}
+      onChange={(e) => setBenefitInput(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          addBenefit();
+        }
+      }}
+      placeholder="Type a benefit and press Enter..."
+      className="flex-1 px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary bg-white text-sm"
+    />
+
+    <button
+      onClick={addBenefit}
+      className="px-4 py-3 rounded-xl text-white font-semibold text-sm"
+      style={{ background: 'linear-gradient(135deg, #0891B2, #0E7490)' }}
+    >
+      <Plus className="w-4 h-4" />
+    </button>
+  </div>
+</div>
 
                    <div>
                     <label className="block text-sm font-semibold text-foreground mb-2">Dead Line</label>
@@ -294,16 +446,37 @@ export function PostJob() {
                     <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-3xl">🛢️</div>
                     <div>
                       <h2 className="text-2xl font-bold text-foreground">{form.title || 'Your Job Title'}</h2>
-                      <p className="text-muted-foreground">{form.company}</p>
+                     
+                     <p className="text-muted-foreground">
+                          {typeof form.company === "object"
+                            ? form.company.company_name
+                            : form.company}
+                        </p>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 mb-5">
                     {form.location && <span className="inline-flex items-center space-x-1 text-sm text-primary bg-primary/8 px-3 py-1.5 rounded-full"><MapPin className="w-3.5 h-3.5" /><span>{form.location}</span></span>}
+                   {form.dead_line && (
+                    <span className="inline-flex items-center space-x-1 text-sm text-red-700 bg-red-50 px-3 py-1.5 rounded-full">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>
+                        Expires: {new Date(form.dead_line).toLocaleString()}
+                      </span>
+                    </span>
+                  )}
+                   
                     {form.type && <span className="text-sm text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full font-medium">{form.type}</span>}
                     {(form.salaryMin || form.salaryMax) && <span className="inline-flex items-center space-x-1 text-sm text-amber-700 bg-amber-50 px-3 py-1.5 rounded-full"><DollarSign className="w-3.5 h-3.5" /><span>${form.salaryMin}–${form.salaryMax}</span></span>}
                     {form.experience && <span className="text-sm text-purple-700 bg-purple-50 px-3 py-1.5 rounded-full">{form.experience}</span>}
                   </div>
-                  {form.description && <p className="text-muted-foreground text-sm leading-relaxed mb-5">{form.description}</p>}
+                  {/* {form.description && <p className="text-muted-foreground text-sm leading-relaxed mb-5">{form.description}</p>} */}
+
+                  <div
+                    className="text-muted-foreground text-sm leading-relaxed mb-5"
+                    dangerouslySetInnerHTML={{ __html: form.description }}
+                  />
+
+
                   {skills.length > 0 && (
                     <div className="mb-5">
                       <h3 className="font-bold text-foreground mb-3">Skills Required</h3>
@@ -314,6 +487,21 @@ export function PostJob() {
                       </div>
                     </div>
                   )}
+
+
+                   {benefits.length > 0 && (
+                    <div className="mb-5">
+                      <h3 className="font-bold text-foreground mb-3">Benefits Required</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {benefits.map(benefit => (
+                          <span key={benefit} className="bg-primary/8 text-primary px-3.5 py-1.5 rounded-xl text-sm font-semibold border border-primary/15">{benefit}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+
+
                   <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-700">
                     <strong>Preview Mode:</strong> Review your listing before publishing. It will go live immediately upon posting.
                   </div>
@@ -348,10 +536,15 @@ export function PostJob() {
               style={{ background: 'linear-gradient(135deg, #0891B2, #0E7490)' }}
             >
               <Briefcase className="w-4 h-4" />
-              <span>Publish Job</span>
+              <span>{isEdit ? "Update Job" : "Publish Job"}</span>
             </button>
           )}
         </div>
     </div>
   );
+
 }
+
+
+
+

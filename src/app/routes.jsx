@@ -46,6 +46,7 @@ import { Navigate } from "react-router-dom";
 import { AdminLayout } from "./components/AdminLayout.jsx";
 import AdminSettings from "./pages/AdminSettings.jsx";
 import { GuestRoute } from "./components/GuestRoute.jsx";
+import EditJob from "./pages/EditJob.jsx";
 
 export const router = createBrowserRouter([
 
@@ -146,11 +147,12 @@ export const router = createBrowserRouter([
       { path: "dashboard",              Component: EmployerDashboard },
       { path: "jobs",                   Component: JobListings },         // ✅ new JobListings page
       { path: "jobs/:jobId/applicants", Component: CompanyApplicants },
-      { path: "post-job",               Component: PostJob },             // ✅ post a job
+      { path: "post-job",               Component: PostJob },   
+      { path: "edit-job/:id", element: <PostJob  /> },         // ✅ post a job
       { path: "company-profile",        Component: EmployerCompanyProfile },
       { path: "notifications",          Component: EmployerNotifications },
       { path: "settings",               Component: EmployerSettings },
-      { path: "contact-us",             Component: ContactUs },
+      // { path: "contact-us",             Component: ContactUs },
     ],
   },
 

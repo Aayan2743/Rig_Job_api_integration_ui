@@ -46,7 +46,7 @@ function StatCard({ icon: Icon, label, value, color }) {
 
 // ─── Main Component ──────────────────────────────────────────
 export function JobListings() {
-  const { myJobs, toggleStatus, deleteJob } = useJobs();
+  const { myJobs } = useJobs();
   const navigate = useNavigate();
 
   const STATUS_MAP = {
@@ -86,12 +86,16 @@ const paused = jobs.filter(j => j.status === 'draft').length;
 
 
 useEffect(() => {
-  fetchJobs(currentPage);
-}, [currentPage, filter]);
+  fetchJobs(1); // reset to page 1 on search
+}, [search, filter]);
 
 useEffect(() => {
-  fetchJobs(currentPage);
-}, [currentPage, filter]);
+  const delayDebounce = setTimeout(() => {
+    fetchJobs(1);
+  }, 500);
+
+  return () => clearTimeout(delayDebounce);
+}, [search, filter]);
 
 const fetchJobs = async (page = 1) => {
   try {
@@ -115,6 +119,71 @@ const fetchJobs = async (page = 1) => {
     console.error(err);
   } finally {
     setLoading(false);
+  }
+};
+
+const toggleStatus = async (id) => {
+  try {
+    const res = await api.post(`/employeer/jobs/toggle-status/${id}`);
+
+    if (res.data.success) {
+      // refresh list after toggle
+      fetchJobs(currentPage); // OR refetch from parent
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const deleteJob = async (id) => {
+  try {
+    const res = await api.delete(`/employeer/jobs/${id}`);
+
+    if (res.data.success) {
+      // remove from UI instantly 🔥
+      setJobs(prev => prev.filter(job => job.id !== id));
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const closeJob = async (id) => {
+  try {
+    const res = await api.get(`/employeer/jobs/close/${id}`);
+
+    if (res.data.success) {
+      // update UI instantly 🔥
+      setJobs(prev =>
+        prev.map(job =>
+          job.id === id
+            ? { ...job, status: 'closed' }
+            : job
+        )
+      );
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+
+const reopenJob = async (id) => {
+  try {
+    const res = await api.get(`/employeer/jobs/reopen/${id}`);
+
+    if (res.data.success) {
+      // update UI instantly 🔥
+      setJobs(prev =>
+        prev.map(job =>
+          job.id === id
+            ? { ...job, status: 'draft' } // reopen as draft
+            : job
+        )
+      );
+    }
+  } catch (err) {
+    console.error(err);
   }
 };
 
@@ -280,7 +349,7 @@ const fetchJobs = async (page = 1) => {
                       {/* Action buttons */}
                       <div className="flex items-center gap-2">
                         {/* Toggle Active/Paused */}
-                        {job.status !== 'Closed' && (
+                        {/* {job.status !== 'Closed' && (
                           <button
                             onClick={() => toggleStatus(job.id)}
                             title={job.status === 'Active' ? 'Pause listing' : 'Activate listing'}
@@ -293,7 +362,45 @@ const fetchJobs = async (page = 1) => {
                               ? <PauseCircle className="w-4 h-4" />
                               : <ToggleRight className="w-4 h-4" />}
                           </button>
+                        )} */}
+
+                        {job.status !== 'closed' && (
+                          <button
+                            onClick={() => toggleStatus(job.id)}
+                            title={job.status === 'published' ? 'Pause listing' : 'Activate listing'}
+                            className={`p-2 rounded-xl border transition-all
+                              ${job.status === 'published'
+                                ? 'border-amber-200 text-amber-600 hover:bg-amber-50'
+                                : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'}`}
+                          >
+                            {job.status === 'published'
+                              ? <PauseCircle className="w-4 h-4" />
+                              : <ToggleRight className="w-4 h-4" />}
+                          </button>
                         )}
+
+
+                        {job.status !== 'closed' && (
+                          <button
+                            onClick={() => closeJob(job.id)}
+                            className="p-2 rounded-xl border border-red-200 text-red-600
+                              hover:bg-red-50 hover:border-red-300 transition-all"
+                            title="Close job"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        )}
+
+                        {job.status === 'closed' && (
+                      <button
+                        onClick={() => reopenJob(job.id)}
+                        className="p-2 rounded-xl border border-emerald-200 text-emerald-600
+                          hover:bg-emerald-50 hover:border-emerald-300 transition-all"
+                        title="Reopen job"
+                      >
+                        <ToggleRight className="w-4 h-4" />
+                      </button>
+                    )}
 
                         {/* View applicants */}
                         <Link
@@ -304,6 +411,15 @@ const fetchJobs = async (page = 1) => {
                         >
                           <Users className="w-4 h-4" />
                         </Link>
+
+                        <Link
+                            to={`/company/edit-job/${job.id}`}
+                            className="p-2 rounded-xl border border-border text-muted-foreground
+                              hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all"
+                            title="Edit job"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </Link>
 
                         {/* Delete */}
                         <button
