@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState,useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useJobs } from '../context/JobsContext.jsx';
+
+
+import api from '../../utils/api';
 import {
   Plus, Search, Briefcase, MapPin, Clock, Users, Eye,
   ToggleLeft, ToggleRight, Trash2, Edit3, Filter,
@@ -10,15 +13,15 @@ import { motion, AnimatePresence } from 'motion/react';
 
 // ─── Helpers ─────────────────────────────────────────────────
 const STATUS_CONFIG = {
-  Active:  { color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: 'bg-emerald-500', icon: CheckCircle },
+  Published:  { color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: 'bg-emerald-500', icon: CheckCircle },
   Paused:  { color: 'text-amber-700  bg-amber-50  border-amber-200',     dot: 'bg-amber-400',   icon: PauseCircle },
   Closed:  { color: 'text-red-700    bg-red-50    border-red-200',       dot: 'bg-red-400',     icon: XCircle },
 };
 
-const FILTER_TABS = ['All', 'Active', 'Paused', 'Closed'];
+const FILTER_TABS = ['All', 'Published', 'Paused', 'Closed'];
 
 function StatusBadge({ status }) {
-  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.Active;
+  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.Published;
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${cfg.color}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
@@ -46,27 +49,74 @@ export function JobListings() {
   const { myJobs, toggleStatus, deleteJob } = useJobs();
   const navigate = useNavigate();
 
+  const STATUS_MAP = {
+  Published: 'published',
+  Paused: 'draft',
+  Closed: 'closed',
+};
+
+const UI_STATUS = {
+  published: 'Published',
+  draft: 'Paused',
+  closed: 'Closed',
+};
+
+  const [currentPage, setCurrentPage] = useState(1);
+const [lastPage, setLastPage] = useState(1);
+
+  const [jobs, setJobs] = useState([]);
+const [loading, setLoading] = useState(true);
+
   const [search,    setSearch]    = useState('');
   const [filter,    setFilter]    = useState('All');
   const [deleteId,  setDeleteId]  = useState(null); // confirm modal
 
   // ── derived stats ──
-  const total   = myJobs.length;
-  const active  = myJobs.filter(j => j.status === 'Active').length;
-  const paused  = myJobs.filter(j => j.status === 'Paused').length;
-  const totalApplicants = myJobs.reduce((sum, j) => sum + (j.applicants || 0), 0);
+  const total   = jobs.length;
+
+  const totalApplicants = jobs.reduce((sum, j) => sum + (j.applicants || 0), 0);
 
   // ── filtered list ──
-  const visible = myJobs.filter(j => {
-    const matchFilter = filter === 'All' || j.status === filter;
-    const matchSearch = !search ||
-      j.title.toLowerCase().includes(search.toLowerCase()) ||
-      j.location.toLowerCase().includes(search.toLowerCase());
-    return matchFilter && matchSearch;
-  });
 
   const confirmDelete = (id) => setDeleteId(id);
   const doDelete = () => { deleteJob(deleteId); setDeleteId(null); };
+
+  const active = jobs.filter(j => j.status === 'published').length;
+const paused = jobs.filter(j => j.status === 'draft').length;
+
+
+useEffect(() => {
+  fetchJobs(currentPage);
+}, [currentPage, filter]);
+
+useEffect(() => {
+  fetchJobs(currentPage);
+}, [currentPage, filter]);
+
+const fetchJobs = async (page = 1) => {
+  try {
+    setLoading(true);
+
+    const res = await api.get("/employeer/jobs", {
+      params: {
+        page,
+        search,
+        status: filter === "All" ? "" : STATUS_MAP[filter],
+      }
+    });
+
+    if (res.data.success) {
+      setJobs(res.data.data);
+      setCurrentPage(res.data.pagination.current_page);
+      setLastPage(res.data.pagination.last_page);
+    }
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="space-y-6">
@@ -127,7 +177,7 @@ export function JobListings() {
       </div>
 
       {/* ── Job Cards ── */}
-      {visible.length === 0 ? (
+      {jobs.length === 0 ? (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -158,7 +208,7 @@ export function JobListings() {
       ) : (
         <div className="space-y-3">
           <AnimatePresence>
-            {visible.map((job, i) => (
+            {jobs.map((job, i) => (
               <motion.div
                 key={job.id}
                 initial={{ opacity: 0, y: 12 }}
@@ -177,7 +227,7 @@ export function JobListings() {
                         <h3 className="text-base font-bold text-foreground group-hover:text-cyan-600 transition-colors truncate">
                           {job.title}
                         </h3>
-                        <StatusBadge status={job.status} />
+                        <StatusBadge status={UI_STATUS[job.status]} />
                       </div>
 
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
@@ -271,7 +321,25 @@ export function JobListings() {
               </motion.div>
             ))}
           </AnimatePresence>
+          <div className="flex justify-center mt-6 gap-3">
+  <button
+    disabled={currentPage === 1}
+    onClick={() => setCurrentPage(prev => prev - 1)}
+  >
+    Prev
+  </button>
+
+  <span>Page {currentPage} of {lastPage}</span>
+
+  <button
+    disabled={currentPage === lastPage}
+    onClick={() => setCurrentPage(prev => prev + 1)}
+  >
+    Next
+  </button>
+</div>
         </div>
+        
       )}
 
       {/* ── Delete Confirm Modal ── */}

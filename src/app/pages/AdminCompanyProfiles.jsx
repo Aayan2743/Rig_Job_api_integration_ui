@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Building2, CheckCircle, Clock, Mail, Phone, Globe, Briefcase, ChevronDown, ChevronUp, Search } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import api from "../../utils/api";
 
 const REQUESTS_KEY = "rwj_company_requests";
 
@@ -27,7 +28,17 @@ function formatDate(iso) {
 }
 
 export function AdminCompanyProfiles() {
-  const [requests, setRequests] = useState(getRequests);
+
+  const [requests, setRequests] = useState([]);
+const [loading, setLoading] = useState(true);
+
+
+
+const [search, setSearch] = useState("");
+const [currentPage, setCurrentPage] = useState(1);
+const [lastPage, setLastPage] = useState(1);
+
+
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState(null);
 
@@ -64,6 +75,37 @@ export function AdminCompanyProfiles() {
 
   const toggleExpanded = (id) => setExpandedId((prev) => (prev === id ? null : id));
 
+const fetchCompanies = async (page = 1, searchTerm = "") => {
+  try {
+    const res = await api.get("/admin/company-requests/approved-companies", {
+      params: {
+        page: page,
+        search: searchTerm,
+      },
+    });
+
+    if (res.data.success) {
+      setRequests(res.data.data);
+      setCurrentPage(res.data.pagination.current_page);
+      setLastPage(res.data.pagination.last_page);
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
+
+useEffect(() => {
+  const delay = setTimeout(() => {
+    setCurrentPage(1); // reset page
+    fetchCompanies(1, search);
+  }, 500);
+
+  return () => clearTimeout(delay);
+}, [search]);
+
+
   return (
     <div className="space-y-6">
       <div className="space-y-1">
@@ -78,8 +120,8 @@ export function AdminCompanyProfiles() {
           <div className="relative">
             <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
             <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              value={ search}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by company, email, industry..."
               className="w-full pl-9 pr-4 py-3 border border-border rounded-xl bg-white text-sm focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
             />
@@ -109,8 +151,8 @@ export function AdminCompanyProfiles() {
                       <Building2 className="w-6 h-6 text-cyan-600" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-bold text-foreground truncate">{req.companyName || "Company"}</h3>
-                      <p className="text-sm text-muted-foreground truncate">{req.contactName ? `${req.contactName} · ` : ""}{req.email}</p>
+                      <h3 className="font-bold text-foreground truncate">{req.company_name || "Company"}</h3>
+                      <p className="text-sm text-muted-foreground truncate">{req.contact_person ? `${req.contact_person} · ` : ""}{req.users?.email}</p>
                       <div className="text-xs text-muted-foreground/70 mt-1 flex items-center gap-2">
                         <Clock className="w-3.5 h-3.5" />
                         <span>Approved {req.approvedAt ? formatDate(req.approvedAt) : "—"}</span>
@@ -162,15 +204,15 @@ export function AdminCompanyProfiles() {
                             </a>
                           </div>
                         )}
-                        {req.industry && (
+                        {req.industry?.name && (
                           <div className="flex items-center gap-2 text-muted-foreground">
                             <Briefcase className="w-4 h-4 text-muted-foreground/60" />
-                            {req.industry}
+                            {req.industry?.name}
                           </div>
                         )}
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Mail className="w-4 h-4 text-muted-foreground/60" />
-                          {req.email}
+                          {req.users?.email}
                         </div>
 
                         {req.message && (
@@ -190,6 +232,31 @@ export function AdminCompanyProfiles() {
           })}
         </div>
       )}
+
+
+      <div className="flex justify-center items-center gap-3 mt-6">
+
+  <button
+    disabled={currentPage === 1}
+    onClick={() => setCurrentPage(currentPage - 1)}
+    className="px-4 py-2 border rounded-xl disabled:opacity-50"
+  >
+    Prev
+  </button>
+
+  <span className="text-sm font-semibold">
+    Page {currentPage} of {lastPage}
+  </span>
+
+  <button
+    disabled={currentPage === lastPage}
+    onClick={() => setCurrentPage(currentPage + 1)}
+    className="px-4 py-2 border rounded-xl disabled:opacity-50"
+  >
+    Next
+  </button>
+
+</div>
     </div>
   );
 }

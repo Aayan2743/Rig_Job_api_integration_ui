@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState,useEffect  } from 'react';
 import { Link } from 'react-router-dom';
 import { Briefcase, MapPin, DollarSign, CheckCircle, ArrowRight, Plus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useJobs } from '../context/JobsContext.jsx';
+import api from '../../utils/api';
 
 const steps = ['Job Details', 'Requirements', 'Preview & Post'];
 
@@ -12,6 +13,8 @@ const categories = ['Engineering', 'Safety & HSE', 'Operations', 'Management', '
 
 export function PostJob() {
   const { addJob } = useJobs();
+
+  const [categories, setCategories] = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [skills, setSkills] = useState(['Drilling Engineering', 'Well Planning']);
   const [skillInput, setSkillInput] = useState('');
@@ -20,11 +23,18 @@ export function PostJob() {
   const [form, setForm] = useState({
     title: '', company: 'Shell Energy', location: '', type: 'Full-time',
     category: '', salaryMin: '', salaryMax: '', description: '',
-    experience: '', requirements: '', benefits: ''
+    experience: '', requirements: '', benefits: '', dead_line: '',
   });
 
-  const handleChange = (e) =>
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  // const handleChange = (e) =>
+  //   setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const handleChange = (e) => {
+  setForm(prev => ({
+    ...prev,
+    [e.target.name]: e.target.value
+  }));
+};
 
   const addSkill = () => {
     const s = skillInput.trim();
@@ -32,6 +42,50 @@ export function PostJob() {
   };
 
   const removeSkill = (skill) => setSkills(skills.filter(s => s !== skill));
+
+
+  useEffect(() => {
+  api.get("/admin/categories/all").then(res => {
+    setCategories(res.data.data);
+  });
+}, []);
+
+
+  const handleSubmit = async () => {
+  try {
+    const payload = {
+      title: form.title,
+      location: form.location,
+      job_type: form.type,
+      category_id: 1, // ⚠️ replace with real ID from dropdown
+      experience_level: form.experience,
+      salary_min: Number(form.salaryMin) || 0,
+      salary_max: Number(form.salaryMax) || 0,
+      description: form.description,
+      requirements: form.requirements,
+      responsibilities: form.requirements, // (or separate field if you add)
+      dead_line: new Date().toISOString(),
+      skills: skills,
+      benefits: form.benefits
+        ? form.benefits.split("\n") // convert textarea → array
+        : [],
+      dead_line: new Date(form.dead_line)
+  .toISOString()
+  .slice(0, 19)
+  .replace("T", " "),
+    };
+
+    const res = await api.post("/employeer/jobs", payload);
+
+    if (res.data.success) {
+      setPosted(true);
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert(err.response?.data?.message || "Job post failed");
+  }
+};
 
   if (posted) {
     return (
@@ -114,11 +168,29 @@ export function PostJob() {
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-foreground mb-2">Category *</label>
-                    <select name="category" value={form.category} onChange={handleChange}
+                    {/* <select name="category" value={form.category} onChange={handleChange}
                       className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary bg-white text-sm transition-all appearance-none">
                       <option value="">Select category...</option>
                       {categories.map(c => <option key={c}>{c}</option>)}
-                    </select>
+                    </select> */}
+
+                    <select
+  name="category"
+  value={form.category}
+  onChange={handleChange}
+  className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary bg-white text-sm transition-all appearance-none"
+>
+  <option value="">Select category...</option>
+
+  {categories.map(c => (
+    <option key={c.id} value={c.id}>
+      {c.name}
+    </option>
+  ))}
+</select>
+
+
+
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-foreground mb-2">Experience Level</label>
@@ -194,6 +266,19 @@ export function PostJob() {
                       placeholder="List benefits, one per line:&#10;• Competitive salary + bonuses&#10;• Comprehensive health insurance&#10;• 25 days PTO"
                       className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary bg-white text-sm transition-all resize-none" />
                   </div>
+
+                   <div>
+                    <label className="block text-sm font-semibold text-foreground mb-2">Dead Line</label>
+                      <input
+                      type="datetime-local"
+                      name="dead_line"
+                      value={form.dead_line}
+                      onChange={handleChange}
+                    />
+                   
+                     </div>
+
+
                 </div>
               </div>
             </motion.div>
@@ -258,23 +343,7 @@ export function PostJob() {
             </button>
           ) : (
             <button
-              onClick={() => {
-                addJob({
-                  title: form.title || 'Untitled Role',
-                  company: form.company,
-                  location: form.location || 'Remote',
-                  type: form.type,
-                  category: form.category,
-                  salaryMin: form.salaryMin,
-                  salaryMax: form.salaryMax,
-                  description: form.description,
-                  experience: form.experience,
-                  requirements: form.requirements,
-                  benefits: form.benefits,
-                  skills,
-                });
-                setPosted(true);
-              }}
+              onClick={handleSubmit}
               className="flex items-center space-x-2 px-8 py-3 rounded-xl text-white font-bold text-sm transition-all hover:shadow-lg hover:scale-[1.02] shine-effect"
               style={{ background: 'linear-gradient(135deg, #0891B2, #0E7490)' }}
             >
