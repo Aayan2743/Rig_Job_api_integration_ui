@@ -1,6 +1,10 @@
-import { useState } from 'react';
-import { User, Lock, Eye, EyeOff, Save, CheckCircle, Plus, Trash2, Factory, Briefcase } from 'lucide-react';
+import { useState,useEffect  } from 'react';
+import { User, Lock, Eye, EyeOff, Save, CheckCircle, Plus, Trash2, Factory, Briefcase,Tag } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
+import IndustryManager from './IndustryManager';
+import CategoryManager from './CategoryManager.jsx';
+import api from '../../utils/api.js';
+import { showSuccess, showError, showLoading, closeAlert } from '../../utils/alert.js';
 
 const USERS_KEY = 'rwj_users';
 const INDUSTRIES_KEY = 'rwj_industries';
@@ -122,7 +126,8 @@ export default function AdminSettings() {
   const [showOld, setShowOld] = useState(false);
   const [showNew, setShowNew] = useState(false);
 
-  const [account, setAccount] = useState({ name: user?.name || '', email: user?.email || '' });
+const [account, setAccount] = useState({ name: '', email: '' });
+const [loading, setLoading] = useState(false);
   const [security, setSecurity] = useState({ oldPassword: '', newPassword: '', confirm: '' });
   const [secError, setSecError] = useState('');
 
@@ -130,31 +135,66 @@ export default function AdminSettings() {
   const [newIndustry, setNewIndustry] = useState('');
   const [indError, setIndError] = useState('');
 
+  const [categoryCount, setCategoryCount] = useState(0);
+  const [industryCount, setIndustryCount] = useState(0);
+
   const [categories, setCategories] = useState(() => getJobCategories());
   const [newCategory, setNewCategory] = useState('');
   const [catError, setCatError] = useState('');
 
   const showToast = () => { setSaved(true); setTimeout(() => setSaved(false), 2500); };
 
-  const saveAccount = (e) => {
-    e.preventDefault();
-    const users = getUsers();
-    saveUsers(users.map(u => u.email === user?.email ? { ...u, name: account.name } : u));
-    showToast();
-  };
 
-  const savePassword = (e) => {
-    e.preventDefault();
-    setSecError('');
-    const users = getUsers();
-    const current = users.find(u => u.email === user?.email);
-    if (!current || current.password !== security.oldPassword) { setSecError('Current password is incorrect.'); return; }
-    if (security.newPassword.length < 6) { setSecError('New password must be at least 6 characters.'); return; }
-    if (security.newPassword !== security.confirm) { setSecError('Passwords do not match.'); return; }
-    saveUsers(users.map(u => u.email === user?.email ? { ...u, password: security.newPassword } : u));
-    setSecurity({ oldPassword: '', newPassword: '', confirm: '' });
-    showToast();
-  };
+
+const savePassword = async (e) => {
+  e.preventDefault();
+
+  // optional frontend validation
+  if (!security.oldPassword || !security.newPassword || !security.confirm) {
+    showError("All fields are required");
+    return;
+  }
+
+  if (security.newPassword.length < 6) {
+    showError("New password must be at least 6 characters");
+    return;
+  }
+
+  if (security.newPassword !== security.confirm) {
+    showError("Passwords do not match");
+    return;
+  }
+
+  try {
+    showLoading();
+
+    await api.post('/employeer/settings/change-password', {
+      current_password: security.oldPassword,
+      new_password: security.newPassword,
+      confirm_password: security.confirm,
+    });
+
+    closeAlert();
+
+    showSuccess("Password updated successfully");
+
+    // ✅ Reset form
+    setSecurity({
+      oldPassword: '',
+      newPassword: '',
+      confirm: '',
+    });
+
+  } catch (err) {
+    closeAlert();
+
+    if (err.response?.status === 422) {
+      showError(err.response.data.errors); // validation errors
+    } else {
+      showError(err.response?.data?.message || "Failed to update password");
+    }
+  }
+};
 
   const addIndustry = () => {
     setIndError('');
@@ -184,7 +224,89 @@ export default function AdminSettings() {
     { id: 'account', label: 'Account', icon: User },
     { id: 'security', label: 'Security', icon: Lock },
     { id: 'industries', label: 'Industries', icon: Factory },
+    { id: 'categories', label: 'Categories', icon: Tag },
   ];
+
+
+  const fetchIndustriescount = async (page = 1) => {
+  const res = await api.get('/admin/industries', {
+    params: { search, page }
+  });
+
+  setIndustries(res.data.data);
+  setPagination(res.data.pagination);
+
+  // ✅ UPDATE COUNT
+  setIndustryCount(res.data.pagination.total);
+};
+
+const fetchCategoryCount = async () => {
+    try {
+      const res = await api.get('/admin/categories', {
+        params: { page: 1 }
+      });
+
+      console.log('Category count:', res.data.pagination.total);
+
+      setCategoryCount(res.data.pagination.total);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+  const fetchAccount = async () => {
+    try {
+      setLoading(true);
+
+      const res = await api.get('/employeer/settings');
+
+      setAccount({
+        name: res.data.data.name,
+        email: res.data.data.email,
+      });
+
+    } catch (err) {
+      showError(err.response?.data?.message || "Failed to load data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchAccount();
+}, []);
+
+
+const saveAccount = async (e) => {
+  e.preventDefault();
+
+  try {
+    showLoading();
+
+    await api.post('/employeer/settings', {
+      name: account.name
+    });
+
+    closeAlert();
+
+    showSuccess("Profile updated successfully");
+
+  } catch (err) {
+    closeAlert();
+
+    if (err.response?.status === 422) {
+      showError(err.response.data.errors);
+    } else {
+      showError(err.response?.data?.message || "Update failed");
+    }
+  }
+};
+
+  useEffect(() => {
+    fetchIndustriescount();
+
+  fetchCategoryCount();
+}, []);
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -210,13 +332,33 @@ export default function AdminSettings() {
             }`}>
             <t.icon className="w-4 h-4" />
             {t.label}
-            {t.id === 'industries' && (
+            {/* {t.id === 'industries' && (
               <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
                 tab === 'industries' ? 'bg-white/20 text-white' : 'bg-secondary/10 text-secondary'
               }`}>
                 {industries.length + categories.length}
               </span>
+            )} */}
+
+            {t.id === 'industries' && (
+              <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                tab === 'industries'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-secondary/10 text-secondary'
+              }`}>
+                {industryCount}
+              </span>
             )}
+
+           {t.id === 'categories' && (
+            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+              tab === 'categories'
+                ? 'bg-white/20 text-white'
+                : 'bg-secondary/10 text-secondary'
+            }`}>
+              {categoryCount}
+            </span>
+          )}
           </button>
         ))}
       </div>
@@ -289,78 +431,13 @@ export default function AdminSettings() {
 
       {/* Industries Tab */}
       {tab === 'industries' && (
-        <div className="bg-white rounded-2xl border border-border/60 p-6 space-y-5">
-          <div>
-            <h3 className="font-bold text-foreground">Manage Industries & Job Categories</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              Control the dropdown options shown across the platform.
-            </p>
-          </div>
+        <IndustryManager  setIndustryCount={setIndustryCount}/>
+      )}
 
-          {/* Sub-section toggle */}
-          <div className="flex gap-2 p-1 bg-muted/40 rounded-xl w-fit">
-            <button
-              onClick={() => setIndSection('industries')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                indSection === 'industries' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-              }`}>
-              Company Register
-              <span className="ml-1.5 text-xs bg-secondary/10 text-secondary px-1.5 py-0.5 rounded-full">{industries.length}</span>
-            </button>
-            <button
-              onClick={() => setIndSection('categories')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                indSection === 'categories' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-              }`}>
-              Job Categories
-              <span className="ml-1.5 text-xs bg-secondary/10 text-secondary px-1.5 py-0.5 rounded-full">{categories.length}</span>
-            </button>
-          </div>
 
-          {/* Company Register Industries */}
-          {indSection === 'industries' && (
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm font-semibold text-foreground">Industry / Sector</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Shown in the <span className="font-semibold text-foreground">Industry / Sector</span> dropdown on the company registration form.
-                </p>
-              </div>
-              <ListManager
-                items={industries}
-                onDelete={(idx) => { const u = industries.filter((_, i) => i !== idx); setIndustries(u); saveIndustries(u); showToast(); }}
-                newValue={newIndustry}
-                onNewValueChange={(v) => { setNewIndustry(v); setIndError(''); }}
-                onAdd={addIndustry}
-                error={indError}
-                placeholder="e.g. Subsea Engineering"
-                emptyText="No industries added yet. Add one above."
-              />
-            </div>
-          )}
-
-          {/* Job Categories */}
-          {indSection === 'categories' && (
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm font-semibold text-foreground">Job Categories</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Shown in the <span className="font-semibold text-foreground">Category</span> dropdown on the Post Job form.
-                </p>
-              </div>
-              <ListManager
-                items={categories}
-                onDelete={(idx) => { const u = categories.filter((_, i) => i !== idx); setCategories(u); saveJobCategories(u); showToast(); }}
-                newValue={newCategory}
-                onNewValueChange={(v) => { setNewCategory(v); setCatError(''); }}
-                onAdd={addCategory}
-                error={catError}
-                placeholder="e.g. Subsea Operations"
-                emptyText="No categories added yet. Add one above."
-              />
-            </div>
-          )}
-        </div>
+       {/* Categories Tab */}
+      {tab === 'categories' && (
+        <CategoryManager setCategoryCount={setCategoryCount} />
       )}
     </div>
   );

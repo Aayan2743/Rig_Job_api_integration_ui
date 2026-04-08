@@ -12,7 +12,7 @@ const navItems = [
   { icon: Building2, label: 'Company Requests', to: '/admin/company-requests' },
   { icon: DollarSign, label: 'Payments', to: '/admin/payments' },
   { icon: Settings, label: 'Settings', to: '/admin/settings' },
-  { icon: FileText, label: 'Contact Us', to: '/admin/contact-us' },
+  // { icon: FileText, label: 'Contact Us', to: '/admin/contact-us' },
 ];
 
 export function AdminLayout() {

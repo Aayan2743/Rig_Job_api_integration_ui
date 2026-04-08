@@ -2,6 +2,8 @@ import { useState, useRef } from 'react';
 import { User, Briefcase, Edit3, Plus, X, Star, Award, Upload, FileText, Trash2, CheckCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 
+
+
 const profileData = {
   name: 'John Doe',
   initials: 'JD',
@@ -42,6 +44,67 @@ function EditableSection({ title, icon: Icon, children, onEdit }) {
 }
 
 export function CandidateProfile() {
+
+  const [experiences, setExperiences] = useState(profileData.experience);
+  const [showExpDrawer, setShowExpDrawer] = useState(false);
+  const [editExp, setEditExp] = useState(null);
+
+
+
+
+
+  const [expForm, setExpForm] = useState({
+  id: null,
+  company: '',
+  title: '',
+  period: '',
+  location: '',
+  description: ''
+});
+
+
+const openExpDrawer = (item = null) => {
+  setEditExp(item);
+
+  setExpForm({
+    id: item?.id || null,
+    company: item?.company || '',
+    title: item?.title || '',
+    period: item?.period || '',
+    location: item?.location || '',
+    description: item?.description || ''
+  });
+
+  setShowExpDrawer(true);
+};
+
+
+
+
+const handleSaveExperience = () => {
+  if (!expForm.company || !expForm.title) return;
+
+  if (editExp) {
+    // ✏️ UPDATE
+    setExperiences(prev =>
+      prev.map(e => (e.id === expForm.id ? expForm : e))
+    );
+  } else {
+    // ➕ ADD
+    const newExp = {
+      ...expForm,
+      id: Date.now()
+    };
+    setExperiences(prev => [...prev, newExp]);
+  }
+
+  setShowExpDrawer(false);
+};
+
+const handleDeleteExperience = (id) => {
+  setExperiences(prev => prev.filter(e => e.id !== id));
+};
+
   const [skills, setSkills] = useState(profileData.skills);
   const [skillInput, setSkillInput] = useState('');
   const [about, setAbout] = useState(profileData.about);
@@ -121,25 +184,42 @@ export function CandidateProfile() {
             {/* Experience */}
             <EditableSection title="Work Experience" icon={Briefcase}>
               <div className="space-y-5">
-                {profileData.experience.map((exp, i) => (
-                  <div key={exp.id} className={`relative pl-5 ${i < profileData.experience.length - 1 ? 'pb-5 border-b border-border/60' : ''}`}>
-                    <div className="absolute left-0 top-1.5 w-2 h-2 rounded-full bg-primary" />
-                    <div className="flex items-start justify-between flex-wrap gap-2 mb-2">
-                      <div>
-                        <h3 className="font-bold text-foreground">{exp.title}</h3>
-                        <p className="text-primary font-semibold text-sm">{exp.company}</p>
-                      </div>
-                      <div className="text-right text-xs text-muted-foreground">
-                        <div className="font-medium">{exp.period}</div>
-                        <div>{exp.location}</div>
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{exp.description}</p>
-                  </div>
-                ))}
-                <button className="flex items-center space-x-2 text-primary hover:underline font-semibold text-sm">
-                  <Plus className="w-4 h-4" /><span>Add Experience</span>
-                </button>
+              {experiences.map((exp, i) => (
+  <div key={exp.id} className="relative pl-5 pb-5 border-b border-border/60">
+
+    <div className="flex items-start justify-between flex-wrap gap-2 mb-2">
+      <div>
+        <h3 className="font-bold text-foreground">{exp.title}</h3>
+        <p className="text-primary font-semibold text-sm">{exp.company}</p>
+      </div>
+
+      <div className="text-right text-xs text-muted-foreground">
+        <div>{exp.period}</div>
+        <div>{exp.location}</div>
+      </div>
+    </div>
+
+    <p className="text-sm text-muted-foreground">{exp.description}</p>
+
+    {/* ACTIONS */}
+    <div className="flex gap-3 mt-2">
+      <button onClick={() => openExpDrawer(exp)} className="text-blue-600 text-xs font-semibold">
+        Edit
+      </button>
+      <button onClick={() => handleDeleteExperience(exp.id)} className="text-red-500 text-xs font-semibold">
+        Delete
+      </button>
+    </div>
+
+  </div>
+))}
+                <button
+  onClick={() => openExpDrawer()}
+  className="flex items-center space-x-2 text-primary hover:underline font-semibold text-sm"
+>
+  <Plus className="w-4 h-4" />
+  <span>Add Experience</span>
+</button>
               </div>
             </EditableSection>
 
@@ -279,6 +359,166 @@ export function CandidateProfile() {
                 <p className="text-xs text-muted-foreground text-center">No resumes uploaded yet.</p>
               )}
             </div>
+
+            
+
+            {showExpDrawer && (
+  <div className="fixed inset-0 bg-black/40 flex justify-end z-50">
+
+    <div className="w-[500px] bg-white h-full p-6 overflow-y-auto">
+
+      {/* Header */}
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-bold">Employment</h2>
+        <button onClick={() => setShowExpDrawer(false)}>✕</button>
+      </div>
+
+      <p className="text-xs text-muted-foreground mb-4">
+        Details like job title, company name, etc, help employers understand your work
+      </p>
+
+      {/* Current Employment */}
+      <div className="mb-4">
+        <p className="text-sm font-semibold mb-2">Is this your current employment?</p>
+        <div className="flex gap-4 text-sm">
+          <label><input type="radio" name="current" /> Yes</label>
+          <label><input type="radio" name="current" /> No</label>
+        </div>
+      </div>
+
+      {/* Employment Type */}
+      <div className="mb-4">
+        <p className="text-sm font-semibold mb-2">Employment type</p>
+        <div className="flex gap-4 text-sm">
+          <label><input type="radio" name="type" /> Full-time</label>
+          <label><input type="radio" name="type" /> Internship</label>
+        </div>
+      </div>
+
+      {/* Experience */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+      
+
+        <select className="border rounded-lg px-3 py-2 text-sm">
+        {[...Array(31)].map((_, i) => (
+          <option key={i} value={i}>
+            {i} {i === 1 ? 'Year' : 'Years'}
+          </option>
+        ))}
+
+        <option value="30+">30+ Years</option>
+      </select>
+        <select className="border rounded-lg px-3 py-2 text-sm">
+  {[...Array(12)].map((_, i) => (
+    <option key={i} value={i}>
+      {i} {i === 1 ? 'Month' : 'Months'}
+    </option>
+  ))}
+</select>
+      </div>
+
+      {/* Company */}
+      <div className="mb-4">
+        <label className="text-sm font-semibold">Current company name *</label>
+        <input className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" placeholder="Type your organization" />
+      </div>
+
+      {/* Job Title */}
+      <div className="mb-4">
+        <label className="text-sm font-semibold">Current job title *</label>
+        <input className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" placeholder="Type your designation" />
+      </div>
+
+      {/* Joining Date */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+       <select className="border rounded-lg px-3 py-2 text-sm">
+  <option value="">Select Year</option>
+
+  {Array.from(
+    { length: new Date().getFullYear() - 1970 + 1 },
+    (_, i) => {
+      const year = new Date().getFullYear() - i;
+      return (
+        <option key={year} value={year}>
+          {year}
+        </option>
+      );
+    }
+  )}
+</select>
+        
+
+         <select className="border rounded-lg px-3 py-2 text-sm">
+    <option value="">Select Month</option>
+
+    {[
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ].map((month, index) => (
+      <option key={index} value={index + 1}>
+        {month}
+      </option>
+    ))}
+  </select>
+      </div>
+
+      {/* Salary */}
+      <div className="mb-4">
+        <label className="text-sm font-semibold">Current salary *</label>
+        <input className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" placeholder="12,00,000" />
+      </div>
+
+      {/* Skills */}
+      <div className="mb-4">
+        <label className="text-sm font-semibold">Skills used *</label>
+        <input className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" placeholder="Add skills" />
+      </div>
+
+      {/* Job Profile */}
+      <div className="mb-4">
+        <label className="text-sm font-semibold">Job profile</label>
+
+        <div className="border rounded-lg mt-1">
+          <div className="p-2 border-b text-xs text-orange-600 font-semibold">
+            ✨ Write with AI
+          </div>
+          <textarea
+            className="w-full px-3 py-2 text-sm outline-none"
+            rows={4}
+            placeholder="Type here..."
+            maxLength={4000}
+          />
+          <div className="text-right text-xs text-muted-foreground px-3 pb-2">
+            4000 characters left
+          </div>
+        </div>
+      </div>
+
+      {/* Notice Period */}
+      <div className="mb-6">
+        <label className="text-sm font-semibold">Notice period *</label>
+        <select className="w-full mt-1 border rounded-lg px-3 py-2 text-sm">
+          <option>Select notice period</option>
+        </select>
+      </div>
+
+      {/* Footer */}
+      <div className="flex justify-end gap-3">
+        <button
+          onClick={() => setShowEmploymentDrawer(false)}
+          className="text-sm text-muted-foreground"
+        >
+          Cancel
+        </button>
+
+        <button className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-semibold">
+          Save
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
     </div>
   );
 }
