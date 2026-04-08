@@ -1,10 +1,13 @@
 import { useState,useEffect  } from 'react';
-import { User, Lock, Eye, EyeOff, Save, CheckCircle, Plus, Trash2, Factory, Briefcase,Tag } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, Save, CheckCircle, Plus, Trash2, Factory, Briefcase,Tag,GraduationCap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import IndustryManager from './IndustryManager';
 import CategoryManager from './CategoryManager.jsx';
 import api from '../../utils/api.js';
 import { showSuccess, showError, showLoading, closeAlert } from '../../utils/alert.js';
+import EducationManager from './EducationManager.jsx';
+import CourseManager from './CourseManager.jsx';
+import SpecializationManager from './SpecializationManager.jsx';
 
 const USERS_KEY = 'rwj_users';
 const INDUSTRIES_KEY = 'rwj_industries';
@@ -225,6 +228,9 @@ const savePassword = async (e) => {
     { id: 'security', label: 'Security', icon: Lock },
     { id: 'industries', label: 'Industries', icon: Factory },
     { id: 'categories', label: 'Categories', icon: Tag },
+    { id: 'education', label: 'Education', icon: GraduationCap },
+    { id: 'courses', label: 'Courses', icon: GraduationCap },
+    { id: 'specializations', label: 'Specializations', icon: GraduationCap },
   ];
 
 
@@ -439,6 +445,28 @@ const saveAccount = async (e) => {
       {tab === 'categories' && (
         <CategoryManager setCategoryCount={setCategoryCount} />
       )}
+
+
+  {/* Categories Tab */}
+      {tab === 'education' && (
+        <EducationManager setCategoryCount={setCategoryCount} />
+      )}
+
+        {tab === 'courses' && (
+        <CourseManager setCategoryCount={setCategoryCount} />
+      )}
+
+
+          {tab === 'specializations' && (
+        <SpecializationManager setCategoryCount={setCategoryCount} />
+      )}
+
+
+      
+
+
+
+      
     </div>
   );
 }
