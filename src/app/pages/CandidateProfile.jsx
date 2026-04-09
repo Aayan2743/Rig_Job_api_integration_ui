@@ -12,25 +12,25 @@ import {
 import api from '../../utils/api.js';
 
 
-const profileData = {
-  name: 'John Doe',
-  initials: 'JD',
-  title: 'Senior Drilling Engineer',
-  location: 'Houston, TX',
-  email: 'john.doe@email.com',
-  phone: '+1 (555) 012-3456',
-  website: 'johndoe.dev',
-  about: 'Experienced drilling engineer with 8+ years in deepwater and HPHT operations. Specialized in well planning, risk assessment, and drilling optimization for major energy companies across the Gulf of Mexico and North Sea.',
-  skills: ['Drilling Engineering', 'Well Planning', 'Deepwater Operations', 'Risk Assessment', 'HPHT Drilling', 'Leadership', 'Data Analysis'],
-  experience: [
-    { id: 1, company: 'Shell Energy', title: 'Senior Drilling Engineer', period: '2020 – Present', location: 'Houston, TX', description: 'Lead drilling operations for deepwater projects in the Gulf of Mexico. Managed teams of 15+ engineers and achieved 20% reduction in NPT.' },
-    { id: 2, company: 'BP Operations', title: 'Drilling Engineer', period: '2017 – 2020', location: 'Aberdeen, UK', description: 'Designed and executed drilling programs for North Sea assets. Expert in HPHT well operations and complex completion designs.' },
-  ],
-  education: [
-    { id: 1, school: 'University of Houston', degree: 'B.Sc. Petroleum Engineering', period: '2013 – 2017', gpa: '3.8 GPA' },
-  ],
-  certifications: ['IWCF Well Control – Subsea Level 3', 'OPITO BOSIET Offshore Safety', 'API Well Control Certified'],
-};
+// const profileData = {
+//   name: 'John Doe',
+//   initials: 'JD',
+//   title: 'Senior Drilling Engineer',
+//   location: 'Houston, TX',
+//   email: 'john.doe@email.com',
+//   phone: '+1 (555) 012-3456',
+//   website: 'johndoe.dev',
+//   about: 'Experienced drilling engineer with 8+ years in deepwater and HPHT operations. Specialized in well planning, risk assessment, and drilling optimization for major energy companies across the Gulf of Mexico and North Sea.',
+//   skills: ['Drilling Engineering', 'Well Planning', 'Deepwater Operations', 'Risk Assessment', 'HPHT Drilling', 'Leadership', 'Data Analysis'],
+//   experience: [
+//     { id: 1, company: 'Shell Energy', title: 'Senior Drilling Engineer', period: '2020 – Present', location: 'Houston, TX', description: 'Lead drilling operations for deepwater projects in the Gulf of Mexico. Managed teams of 15+ engineers and achieved 20% reduction in NPT.' },
+//     { id: 2, company: 'BP Operations', title: 'Drilling Engineer', period: '2017 – 2020', location: 'Aberdeen, UK', description: 'Designed and executed drilling programs for North Sea assets. Expert in HPHT well operations and complex completion designs.' },
+//   ],
+//   education: [
+//     { id: 1, school: 'University of Houston', degree: 'B.Sc. Petroleum Engineering', period: '2013 – 2017', gpa: '3.8 GPA' },
+//   ],
+//   certifications: ['IWCF Well Control – Subsea Level 3', 'OPITO BOSIET Offshore Safety', 'API Well Control Certified'],
+// };
 
 function EditableSection({ title, icon: Icon, children, onEdit }) {
   return (
@@ -59,9 +59,10 @@ export function CandidateProfile() {
 
     const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'JD';  
 
-  const [experiences, setExperiences] = useState(profileData.experience);
+  const [experiences, setExperiences] = useState([]);
   const [showExpDrawer, setShowExpDrawer] = useState(false);
   const [editExp, setEditExp] = useState(null);
+  const [editingSkills, setEditingSkills] = useState(false);
 
 const [certifications, setCertifications] = useState([
   "IWCF Well Control – Subsea Level 3",
@@ -86,27 +87,52 @@ const openCertDrawer = (cert = '', index = null) => {
 
 
 
-  const [expForm, setExpForm] = useState({
+
+
+const [expForm, setExpForm] = useState({
   id: null,
-  company: '',
-  title: '',
-  period: '',
-  location: '',
-  description: ''
+  company: "",
+  title: "",
+  location: "",
+  description: "",
+    current: "yes", // default
+
+  employment_type: "", // full-time / internship
+  years: "",
+  months: "",
+  start_year: "",
+  start_month: "",
+  salary: "",
+  notice_period: ""
 });
 
 
-const openExpDrawer = (item = null) => {
-  setEditExp(item);
 
-  setExpForm({
-    id: item?.id || null,
-    company: item?.company || '',
-    title: item?.title || '',
-    period: item?.period || '',
-    location: item?.location || '',
-    description: item?.description || ''
-  });
+
+
+
+
+const openExpDrawer = (item = null) => {
+  if (item) {
+    setExpForm({
+      ...item
+    });
+  } else {
+    setExpForm({
+      id: null,
+      current: "yes",
+      company: "",
+      title: "",
+      location: "",
+      description: "",
+      years: "",
+      months: "",
+      start_year: "",
+      start_month: "",
+      end_year: "",
+      end_month: "",
+    });
+  }
 
   setShowExpDrawer(true);
 };
@@ -114,31 +140,13 @@ const openExpDrawer = (item = null) => {
 
 
 
-const handleSaveExperience = () => {
-  if (!expForm.company || !expForm.title) return;
 
-  if (editExp) {
-    // ✏️ UPDATE
-    setExperiences(prev =>
-      prev.map(e => (e.id === expForm.id ? expForm : e))
-    );
-  } else {
-    // ➕ ADD
-    const newExp = {
-      ...expForm,
-      id: Date.now()
-    };
-    setExperiences(prev => [...prev, newExp]);
-  }
 
-  setShowExpDrawer(false);
-};
 
-const handleDeleteExperience = (id) => {
-  setExperiences(prev => prev.filter(e => e.id !== id));
-};
 
-  const [skills, setSkills] = useState(profileData.skills);
+
+
+  const [skills, setSkills] = useState([]);
   const [skillInput, setSkillInput] = useState('');
 
 
@@ -146,7 +154,7 @@ const handleDeleteExperience = (id) => {
 const [usedskillInput, setusedSkillInput] = useState('');
 
 
-  const [about, setAbout] = useState(profileData.about);
+  const [about, setAbout] = useState([]);
   const [editingAbout, setEditingAbout] = useState(false);
   const [savedAbout, setSavedAbout] = useState(false);
   const [resumes, setResumes] = useState([]);
@@ -304,9 +312,9 @@ const handleDeleteEducation = (index) => {
   setEducationList(prev => prev.filter((_, i) => i !== index));
 };
 
-useEffect(() => {
-  fetchEducations();
-}, []);
+// useEffect(() => {
+//   fetchEducations();
+// }, []);
 
 const fetchEducations = async () => {
   try {
@@ -364,6 +372,185 @@ const handleCourseChange = async (value) => {
 };
 
 
+const handleSaveAbout = async () => {
+  try {
+    showLoading();
+
+    const res = await api.post("/candidate/about", {
+      about: about,
+    });
+
+    closeAlert();
+    showSuccess("About updated successfully");
+
+    setEditingAbout(false);
+
+  } catch (error) {
+    closeAlert();
+
+    const message =
+      error.response?.data?.message ||
+      error.message ||
+      "Something went wrong";
+
+    showError(message);
+  }
+};
+
+useEffect(() => {
+  fetchProfile();
+}, []);
+
+
+const fetchProfile = async () => {
+  try {
+    showLoading();
+
+    const res = await api.get("/candidate/profile");
+
+    console.log("FULL RESPONSE:", res); // 🔥 DEBUG
+
+    const data = res?.data?.data || {};
+
+    console.log("PROFILE DATA:", data);
+
+    // ✅ ABOUT
+    setAbout(data.about || "");
+    // setOriginalAbout(data.about || "");
+
+    // ✅ SKILLS
+    setSkills(
+      Array.isArray(data.skills)
+        ? data.skills.map(item => item.skill)
+        : []
+    );
+
+    // ✅ EXPERIENCE
+    setExperiences(data.experiences || []);
+
+    closeAlert();
+
+  } catch (error) {
+    console.log("PROFILE ERROR:", error); // 🔥 VERY IMPORTANT
+
+    showError(
+      error.response?.data?.message ||
+      error.message ||
+      "Failed to load profile"
+    );
+  }
+};
+
+
+const handleSaveSkills = async () => {
+  try {
+    showLoading();
+
+    await api.post("/candidate/skills", {
+      skills: skills,
+    });
+
+    closeAlert();
+    showSuccess("Skills updated successfully");
+
+    setEditingSkills(false);
+
+  } catch (error) {
+    closeAlert();
+
+    const message =
+      error.response?.data?.message ||
+      error.message ||
+      "Something went wrong";
+
+    showError(message);
+  }
+};
+
+
+
+
+
+// Experiance
+
+
+
+
+
+const handleSaveExperience = async () => {
+  if (!expForm.company || !expForm.title) {
+    return showError("Company & Title required");
+  }
+
+  try {
+    showLoading();
+
+    // ✅ Convert to backend format
+ 
+
+
+    const payload = {
+  company: expForm.company,
+  title: expForm.title,
+  location: expForm.location,
+  description: expForm.description,
+
+  // ✅ REQUIRED
+  current: expForm.current, // "yes" or "no"
+
+  employment_type: expForm.employment_type,
+
+  // ✅ EXACT FIELDS YOU WANT
+  start_year: expForm.start_year,
+  start_month: expForm.start_month,
+
+  end_year:
+    expForm.current === "no" ? expForm.end_year : null,
+
+  end_month:
+    expForm.current === "no" ? expForm.end_month : null,
+};
+
+    console.log("PAYLOAD:", payload); // 🔥 DEBUG
+
+    if (expForm.id) {
+      await api.put(`/candidate/experience/${expForm.id}`, payload);
+    } else {
+      await api.post(`/candidate/experience`, payload);
+    }
+
+    showSuccess("Saved successfully");
+    setShowExpDrawer(false);
+    await fetchProfile();
+    // fetchExperiences();
+
+  } catch (error) {
+    console.log("ERROR:", error.response);
+    showError(error.response?.data?.message || "Save failed");
+  }
+};
+
+
+
+
+
+const handleDeleteExperience = async (id) => {
+  const confirm = await showConfirm("Delete this experience?");
+  if (!confirm) return;
+
+  try {
+    await api.delete(`/candidate/experience/${id}`);
+    showSuccess("Deleted");
+     await fetchProfile();
+
+    // fetchExperiences();
+
+  } catch {
+    showError("Delete failed");
+  }
+};
+
+
 return (
   <div className="max-w-7xl mx-auto p-4 space-y-4">
 
@@ -379,8 +566,8 @@ return (
           <p className="text-xs text-muted-foreground">Profile last updated - Today</p>
 
           <div className="flex flex-wrap gap-4 text-xs mt-2 text-muted-foreground">
-            <span>📍 {profileData.location}</span>
-            <span>📞 {profileData.phone}</span>
+            <span>📍 Location</span>
+            <span>📞 9440161007</span>
             <span>✉️ {user.email}</span>
           </div>
         </div>
@@ -432,7 +619,7 @@ return (
                 className="w-full border rounded-xl p-3 text-sm mb-3" />
 
               <div className="flex gap-2">
-                <button onClick={() => setEditingAbout(false)}
+                <button onClick={handleSaveAbout}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
                   Save
                 </button>
@@ -447,65 +634,156 @@ return (
           )}
         </div>
 
-        {/* 🔥 SKILLS */}
         <div ref={skillsRef} className="bg-white rounded-2xl p-5 shadow-sm">
-          <div className="flex justify-between mb-3">
-            <h3 className="font-semibold">Key Skills</h3>
-          </div>
 
-          <div className="flex flex-wrap gap-2 mb-4">
-            {skills.map(skill => (
-              <span key={skill} className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs flex items-center gap-1">
-                {skill}
-                <button onClick={() => setSkills(skills.filter(s => s !== skill))}>✕</button>
-              </span>
-            ))}
-          </div>
+  {/* HEADER */}
+  <div className="flex justify-between mb-3">
+    <h3 className="font-semibold">Key Skills </h3>
 
-          <div className="flex gap-2">
-            <input
-              value={skillInput}
-              onChange={e => setSkillInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSkill())}
-              className="flex-1 border rounded-xl px-3 py-2 text-sm"
-              placeholder="Add skill"
-            />
-            <button onClick={addSkill} className="bg-blue-600 text-white px-4 rounded-lg">+</button>
-          </div>
-        </div>
+    <button
+      onClick={() => setEditingSkills(!editingSkills)}
+      className="text-blue-600 text-sm"
+    >
+      {editingSkills ? "Cancel" : "Edit"}
+    </button>
+  </div>
+
+  {/* SKILLS LIST */}
+
+<div className="flex flex-wrap gap-2 mb-4">
+  {skills.map((skill, index) => {
+
+    const skillName = typeof skill === "string" ? skill : skill.skill;
+
+    return (
+      <span
+        key={index}
+        className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs flex items-center gap-1"
+      >
+        {skillName}
+
+        {editingSkills && (
+          <button
+            onClick={() =>
+              setSkills(prev =>
+                prev.filter((_, i) => i !== index)
+              )
+            }
+          >
+            ✕ 
+          </button>
+        )}
+      </span>
+    );
+  })}
+</div>
+
+  {/* ➕ INPUT ONLY IN EDIT MODE */}
+  {editingSkills && (
+    <div className="flex gap-2 mb-3">
+      <input
+        value={skillInput}
+        onChange={e => setSkillInput(e.target.value)}
+        onKeyDown={e =>
+          e.key === "Enter" &&
+          (e.preventDefault(), addSkill())
+        }
+        className="flex-1 border rounded-xl px-3 py-2 text-sm"
+        placeholder="Add skill"
+      />
+
+      <button
+        onClick={addSkill}
+        className="bg-blue-600 text-white px-4 rounded-lg"
+      >
+        +
+      </button>
+    </div>
+  )}
+
+  {/* 💾 SAVE BUTTON */}
+  {editingSkills && (
+    <button
+      onClick={handleSaveSkills}
+      className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm"
+    >
+      Save Skills
+    </button>
+  )}
+</div>
+
+     
+      
 
         {/* 🔥 EXPERIENCE */}
+       
+
         <div ref={expRef} className="bg-white rounded-2xl p-5 shadow-sm">
-          <div className="flex justify-between mb-3">
-            <h3 className="font-semibold">Employment</h3>
-            <button onClick={() => openExpDrawer()} className="text-blue-600 text-sm">Add</button>
-          </div>
 
-          {experiences.map(exp => (
-            <div key={exp.id} className="border-b pb-3 mb-3">
+  <div className="flex justify-between mb-3">
+    <h3 className="font-semibold">Employment</h3>
 
-              <div className="flex justify-between">
-                <div>
-                  <h4 className="font-semibold">{exp.title}</h4>
-                  <p className="text-sm text-primary">{exp.company}</p>
-                </div>
+    <button onClick={() => openExpDrawer()} className="text-blue-600 text-sm">
+      Add
+    </button>
+  </div>
 
-                <div className="text-xs text-muted-foreground text-right">
-                  <div>{exp.period}</div>
-                  <div>{exp.location}</div>
-                </div>
-              </div>
+  {experiences.map(exp => (
+    <div key={exp.id} className="border-b pb-3 mb-3">
 
-              <p className="text-sm mt-1">{exp.description}</p>
-
-              <div className="flex gap-3 mt-2 text-xs">
-                <button onClick={() => openExpDrawer(exp)} className="text-blue-600">Edit</button>
-                <button onClick={() => handleDeleteExperience(exp.id)} className="text-red-500">Delete</button>
-              </div>
-
-            </div>
-          ))}
+      <div className="flex justify-between">
+        <div>
+          <h4 className="font-semibold">{exp.title}</h4>
+          <p className="text-sm text-primary">{exp.company}</p>
         </div>
+
+       <div className="text-xs text-muted-foreground text-right">
+
+  <div>
+    {exp.start_date && (
+      (() => {
+        const start = new Date(exp.start_date);
+        const end = exp.is_current
+          ? new Date()
+          : exp.end_date
+          ? new Date(exp.end_date)
+          : null;
+
+        if (!end) return "";
+
+        let years = end.getFullYear() - start.getFullYear();
+        let months = end.getMonth() - start.getMonth();
+
+        if (months < 0) {
+          years--;
+          months += 12;
+        }
+
+        return `${years} yrs ${months} mo`;
+      })()
+    )}
+  </div>
+
+  <div>{exp.location} sdsdsad</div>
+
+</div>
+      </div>
+
+      <p className="text-sm mt-1">{exp.description}</p>
+
+      <div className="flex gap-3 mt-2 text-xs">
+        <button onClick={() => openExpDrawer(exp)} className="text-blue-600">
+          Edit
+        </button>
+
+        <button onClick={() => handleDeleteExperience(exp.id)} className="text-red-500">
+          Delete
+        </button>
+      </div>
+
+    </div>
+  ))}
+</div>
 
         {/* 🔥 EDUCATION */}
        <div ref={eduRef} className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition">
@@ -613,7 +891,158 @@ return (
     </div>
 
     {/* 🔥 KEEP YOUR DRAWERS BELOW (NO CHANGE) */}
-    {showExpDrawer && (
+{showExpDrawer && (
+  <div className="fixed inset-0 bg-black/40 flex justify-end z-50">
+
+    <div className="w-[450px] bg-white h-full p-6 overflow-y-auto">
+
+      <h2 className="text-lg font-bold mb-4">Employment</h2>
+
+      {/* CURRENT */}
+      <div className="mb-4">
+        <label>
+          <input
+            type="radio"
+            checked={expForm.current === "yes"}
+            onChange={() =>
+              setExpForm({ ...expForm, current: "yes" })
+            }
+          /> Yes
+        </label>
+
+        <label className="ml-4">
+          <input
+            type="radio"
+            checked={expForm.current === "no"}
+            onChange={() =>
+              setExpForm({ ...expForm, current: "no" })
+            }
+          /> No
+        </label>
+      </div>
+
+      {/* COMPANY */}
+      <input
+        value={expForm.company}
+        onChange={(e) =>
+          setExpForm({ ...expForm, company: e.target.value })
+        }
+        placeholder="Company"
+        className="w-full border p-2 mb-3"
+      />
+
+      {/* TITLE */}
+      <input
+        value={expForm.title}
+        onChange={(e) =>
+          setExpForm({ ...expForm, title: e.target.value })
+        }
+        placeholder="Job Title"
+        className="w-full border p-2 mb-3"
+      />
+
+      {/* EXPERIENCE */}
+      {expForm.current === "yes" && (
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <select
+            value={expForm.years}
+            onChange={(e) =>
+              setExpForm({ ...expForm, years: e.target.value })
+            }
+          >
+            {[...Array(31)].map((_, i) => (
+              <option key={i} value={i}>{i} Years</option>
+            ))}
+          </select>
+
+          <select
+            value={expForm.months}
+            onChange={(e) =>
+              setExpForm({ ...expForm, months: e.target.value })
+            }
+          >
+            {[...Array(12)].map((_, i) => (
+              <option key={i} value={i}>{i} Months</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* DATES */}
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <input
+          value={expForm.start_year}
+          onChange={(e) =>
+            setExpForm({ ...expForm, start_year: e.target.value })
+          }
+          placeholder="Start Year"
+          className="border p-2"
+        />
+
+        <input
+          value={expForm.start_month}
+          onChange={(e) =>
+            setExpForm({ ...expForm, start_month: e.target.value })
+          }
+          placeholder="Start Month"
+          className="border p-2"
+        />
+      </div>
+
+      {expForm.current === "no" && (
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <input
+            value={expForm.end_year}
+            onChange={(e) =>
+              setExpForm({ ...expForm, end_year: e.target.value })
+            }
+            placeholder="End Year"
+            className="border p-2"
+          />
+
+          <input
+            value={expForm.end_month}
+            onChange={(e) =>
+              setExpForm({ ...expForm, end_month: e.target.value })
+            }
+            placeholder="End Month"
+            className="border p-2"
+          />
+        </div>
+      )}
+
+      {/* DESCRIPTION */}
+      <textarea
+        value={expForm.description}
+        onChange={(e) =>
+          setExpForm({ ...expForm, description: e.target.value })
+        }
+        placeholder="Description"
+        className="w-full border p-2 mb-4"
+      />
+
+      {/* BUTTONS */}
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={() => setShowExpDrawer(false)}
+          className="border px-3 py-1"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={handleSaveExperience}
+          className="bg-blue-600 text-white px-4 py-1"
+        >
+          Save
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
+
+  {showExpDrawer && (
   <div className="fixed inset-0 bg-black/40 flex justify-end z-50">
 
     <div className="w-[500px] bg-white h-full p-6 overflow-y-auto">
@@ -624,256 +1053,266 @@ return (
         <button onClick={() => setShowExpDrawer(false)}>✕</button>
       </div>
 
-      <p className="text-xs text-muted-foreground mb-4">
-        Details like job title, company name, etc, help employers understand your work
-      </p>
-
-      {/* Current Employment */}
+      {/* CURRENT EMPLOYMENT */}
       <div className="mb-4">
         <p className="text-sm font-semibold mb-2">Is this your current employment?</p>
         <div className="flex gap-4 text-sm">
-          <label><input type="radio" name="current" /> Yes</label>
-          <label><input type="radio" name="current" /> No</label>
+          <label>
+            <input
+              type="radio"
+              checked={expForm.current === "yes"}
+              onChange={() => setExpForm({ ...expForm, current: "yes" })}
+            /> Yes
+          </label>
+          <label>
+            <input
+              type="radio"
+              checked={expForm.current === "no"}
+              onChange={() => setExpForm({ ...expForm, current: "no" })}
+            /> No
+          </label>
         </div>
       </div>
 
-      {/* Employment Type */}
+      {/* EMPLOYMENT TYPE */}
       <div className="mb-4">
         <p className="text-sm font-semibold mb-2">Employment type</p>
         <div className="flex gap-4 text-sm">
-          <label><input type="radio" name="type" /> Full-time</label>
-          <label><input type="radio" name="type" /> Internship</label>
+          <label>
+            <input
+              type="radio"
+              checked={expForm.employment_type === "full-time"}
+              onChange={() =>
+                setExpForm({ ...expForm, employment_type: "full-time" })
+              }
+            /> Full-time
+          </label>
+          <label>
+            <input
+              type="radio"
+              checked={expForm.employment_type === "internship"}
+              onChange={() =>
+                setExpForm({ ...expForm, employment_type: "internship" })
+              }
+            /> Internship
+          </label>
         </div>
       </div>
 
-      {/* Experience */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-      
 
-        <select className="border rounded-lg px-3 py-2 text-sm">
+ 
+      {/* EXPERIENCE ONLY FOR CURRENT */}
+   {expForm.current === "yes" && (
+  <>
+    <p className="text-sm font-semibold mb-2">
+      Total Experience
+    </p>
+
+    <div className="grid grid-cols-2 gap-3 mb-4">
+      <select
+        value={expForm.years}
+        onChange={(e) =>
+          setExpForm({ ...expForm, years: e.target.value })
+        }
+        className="border rounded-lg px-3 py-2 text-sm"
+      >
         {[...Array(31)].map((_, i) => (
           <option key={i} value={i}>
-            {i} {i === 1 ? 'Year' : 'Years'}
+            {i} Years
           </option>
         ))}
-
-        <option value="30+">30+ Years</option>
       </select>
-        <select className="border rounded-lg px-3 py-2 text-sm">
-  {[...Array(12)].map((_, i) => (
-    <option key={i} value={i}>
-      {i} {i === 1 ? 'Month' : 'Months'}
-    </option>
-  ))}
-</select>
-      </div>
 
-      {/* Company */}
+      <select
+        value={expForm.months}
+        onChange={(e) =>
+          setExpForm({ ...expForm, months: e.target.value })
+        }
+        className="border rounded-lg px-3 py-2 text-sm"
+      >
+        {[...Array(12)].map((_, i) => (
+          <option key={i} value={i}>
+            {i} Months
+          </option>
+        ))}
+      </select>
+    </div>
+  </>
+)}
+
+      {/* COMPANY */}
       <div className="mb-4">
-        <label className="text-sm font-semibold">Current company name *</label>
-        <input className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" placeholder="Type your organization" />
+        <label className="text-sm font-semibold">
+          {expForm.current === "yes"
+            ? "Current company name *"
+            : "Previous company name *"}
+        </label>
+
+        <input
+          value={expForm.company}
+          onChange={(e) =>
+            setExpForm({ ...expForm, company: e.target.value })
+          }
+          className="w-full mt-1 border rounded-lg px-3 py-2 text-sm"
+          placeholder="Type your organization"
+        />
       </div>
 
-      {/* Job Title */}
+      {/* TITLE */}
       <div className="mb-4">
-        <label className="text-sm font-semibold">Current job title *</label>
-        <input className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" placeholder="Type your designation" />
+        <label className="text-sm font-semibold">
+          {expForm.current === "yes"
+            ? "Current job title *"
+            : "Previous job title *"}
+        </label>
+
+        <input
+          value={expForm.title}
+          onChange={(e) =>
+            setExpForm({ ...expForm, title: e.target.value })
+          }
+          className="w-full mt-1 border rounded-lg px-3 py-2 text-sm"
+          placeholder="Type your designation"
+        />
       </div>
 
-      {/* Joining Date */}
+      {/* JOINING DATE */}
       <div className="grid grid-cols-2 gap-3 mb-4">
-       <select className="border rounded-lg px-3 py-2 text-sm">
-  <option value="">Select Year</option>
 
-  {Array.from(
-    { length: new Date().getFullYear() - 1970 + 1 },
-    (_, i) => {
-      const year = new Date().getFullYear() - i;
-      return (
-        <option key={year} value={year}>
-          {year}
-        </option>
-      );
+  <p className="text-sm font-semibold col-span-2">
+    Joining date
+  </p>
+
+  <select
+    value={expForm.start_year}
+    onChange={(e) =>
+      setExpForm({ ...expForm, start_year: e.target.value })
     }
-  )}
-</select>
-        
+    className="border rounded-lg px-3 py-2 text-sm"
+  >
+    <option value="">Select Year</option>
+    {Array.from({ length: 50 }, (_, i) => {
+      const year = new Date().getFullYear() - i;
+      return <option key={year} value={year}>{year}</option>;
+    })}
+  </select>
 
-         <select className="border rounded-lg px-3 py-2 text-sm">
+  <select
+    value={expForm.start_month}
+    onChange={(e) =>
+      setExpForm({ ...expForm, start_month: e.target.value })
+    }
+    className="border rounded-lg px-3 py-2 text-sm"
+  >
     <option value="">Select Month</option>
-
-    {[
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-    ].map((month, index) => (
-      <option key={index} value={index + 1}>
-        {month}
-      </option>
+    {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+      .map((m, i) => (
+        <option key={i} value={i+1}>{m}</option>
     ))}
   </select>
-      </div>
 
-      {/* Salary */}
-      <div className="mb-4">
-        <label className="text-sm font-semibold">Current salary *</label>
-        <input className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" placeholder="12,00,000" />
-      </div>
-
-      {/* Skills */}
-     <div className="mb-4">
-  <label className="text-sm font-semibold">Skills used *</label>
-
-  <div className="border rounded-lg px-3 py-2 mt-1">
-
-    {/* 🔥 TAGS */}
-    <div className="flex flex-wrap gap-2 mb-2">
-      {usedskills.map((skill, i) => (
-        <span
-          key={i}
-          className="flex items-center gap-1 bg-secondary/10 text-secondary px-2 py-1 rounded-full text-xs font-medium"
-        >
-          {skill}
-          <button
-            onClick={() => removeUsedSkill(skill)}
-            className="text-red-500"
-          >
-            ✕
-          </button>
-        </span>
-      ))}
-    </div>
-
-    {/* INPUT */}
-    <input
-      type="text"
-      value={usedskillInput}
-      onChange={(e) => setusedSkillInput(e.target.value)}
-      onKeyDown={handleAddSkill}
-      placeholder="Type skill and press Enter"
-      className="w-full outline-none text-sm"
-    />
-
-  </div>
 </div>
 
-      {/* Job Profile */}
+      {/* WORKED TILL (ONLY IF NO) */}
+     {expForm.current === "no" && (
+  <div className="grid grid-cols-2 gap-3 mb-4">
+
+    {/* LABEL */}
+    <p className="text-sm font-semibold col-span-2">
+      Worked till
+    </p>
+
+    {/* END YEAR */}
+    <select
+      value={expForm.end_year}
+      onChange={(e) =>
+        setExpForm({ ...expForm, end_year: e.target.value })
+      }
+      className="border rounded-lg px-3 py-2 text-sm"
+    >
+      <option value="">Select Year</option>
+
+      {Array.from({ length: 50 }, (_, i) => {
+        const year = new Date().getFullYear() - i;
+        return (
+          <option key={year} value={year}>
+            {year}
+          </option>
+        );
+      })}
+    </select>
+
+    {/* END MONTH */}
+    <select
+      value={expForm.end_month}
+      onChange={(e) =>
+        setExpForm({ ...expForm, end_month: e.target.value })
+      }
+      className="border rounded-lg px-3 py-2 text-sm"
+    >
+      <option value="">Select Month</option>
+
+      {[
+        "Jan","Feb","Mar","Apr","May","Jun",
+        "Jul","Aug","Sep","Oct","Nov","Dec"
+      ].map((m, i) => (
+        <option key={i} value={i + 1}>
+          {m}
+        </option>
+      ))}
+    </select>
+
+  </div>
+)}
+
+      {/* SALARY (ONLY CURRENT) */}
+      {expForm.current === "yes" && (
+        <div className="mb-4">
+          <label className="text-sm font-semibold">Current salary *</label>
+          <input
+            value={expForm.salary}
+            onChange={(e) =>
+              setExpForm({ ...expForm, salary: e.target.value })
+            }
+            className="w-full mt-1 border rounded-lg px-3 py-2 text-sm"
+            placeholder="12,00,000"
+          />
+        </div>
+      )}
+
+      {/* DESCRIPTION */}
       <div className="mb-4">
         <label className="text-sm font-semibold">Job profile</label>
-
-        <div className="border rounded-lg mt-1">
-          <div className="p-2 border-b text-xs text-orange-600 font-semibold">
-            ✨ Write with AI
-          </div>
-          <textarea
-            className="w-full px-3 py-2 text-sm outline-none"
-            rows={4}
-            placeholder="Type here..."
-            maxLength={4000}
-          />
-          <div className="text-right text-xs text-muted-foreground px-3 pb-2">
-            4000 characters left
-          </div>
-        </div>
+        <textarea
+          value={expForm.description}
+          onChange={(e) =>
+            setExpForm({ ...expForm, description: e.target.value })
+          }
+          className="w-full px-3 py-2 text-sm outline-none border rounded-lg"
+          rows={4}
+        />
       </div>
 
-      {/* Notice Period */}
-      <div className="mb-6">
-        <label className="text-sm font-semibold">Notice period *</label>
-       
-       <select className="w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary">
-  <option value="">Select notice period</option>
-
-  <option value="15_days">15 Days or less</option>
-  <option value="1_month">1 Month</option>
-  <option value="2_months">2 Months</option>
-  <option value="3_months">3 Months</option>
-  <option value="more_than_3">More than 3 Months</option>
-  <option value="serving">Serving Notice Period</option>
-</select>
-      </div>
-
-      {/* Footer */}
+      {/* FOOTER */}
       <div className="flex justify-end gap-3">
         <button
-          onClick={() => setShowEmploymentDrawer(false)}
+          onClick={() => setShowExpDrawer(false)}
           className="text-sm text-muted-foreground"
         >
           Cancel
         </button>
 
-        <button className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-semibold">
+        <button
+          onClick={handleSaveExperience}
+          className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-semibold"
+        >
           Save
         </button>
       </div>
 
     </div>
   </div>
-          )}
-
-    {showCertDrawer && (
-  <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-end z-50">
-
-    {/* DRAWER */}
-    <div className="w-[420px] bg-white h-full flex flex-col shadow-2xl animate-slideInRight">
-
-      {/* HEADER */}
-      <div className="flex items-center justify-between px-5 py-4 border-b">
-        <h2 className="text-lg font-bold text-foreground">
-          {editIndex !== null ? 'Edit Certification' : 'Add Certification'}
-        </h2>
-
-        <button
-          onClick={() => setShowCertDrawer(false)}
-          className="text-muted-foreground hover:text-red-500 text-lg"
-        >
-          ✕
-        </button>
-      </div>
-
-      {/* BODY */}
-      <div className="p-5 flex-1 overflow-y-auto">
-
-        <label className="text-sm font-semibold text-foreground mb-2 block">
-          Certification Name
-        </label>
-
-        <input
-          value={certInput}
-          onChange={(e) => setCertInput(e.target.value)}
-          placeholder="e.g. IWCF Well Control Level 3"
-          className="w-full border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all"
-        />
-
-        {/* HELPER TEXT */}
-        <p className="text-xs text-muted-foreground mt-2">
-          Add certifications to improve your profile visibility.
-        </p>
-
-      </div>
-
-      {/* FOOTER */}
-      <div className="border-t px-5 py-4 flex justify-end gap-3 bg-white">
-
-        <button
-          onClick={() => setShowCertDrawer(false)}
-          className="px-4 py-2 rounded-xl border text-sm text-muted-foreground hover:bg-muted/40"
-        >
-          Cancel
-        </button>
-
-        <button
-          onClick={handleSaveCert}
-          className="px-5 py-2 rounded-xl text-white text-sm font-semibold shadow-md hover:shadow-lg transition-all"
-          style={{ background: 'linear-gradient(135deg, #0891B2, #0E7490)' }}
-        >
-          Save
-        </button>
-
-      </div>
-
-    </div>
-  </div>
-    )}
+)}
 
     {showEduDrawer && (
   <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-end z-50">
