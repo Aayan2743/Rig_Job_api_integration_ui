@@ -65,23 +65,33 @@ export function CandidateProfile() {
   const [editingSkills, setEditingSkills] = useState(false);
 
 const [certifications, setCertifications] = useState([
-  "IWCF Well Control – Subsea Level 3",
-  "OPITO BOSIET Offshore Safety",
-  "API Well Control Certified"
+  
 ]);
 
 const [showCertDrawer, setShowCertDrawer] = useState(false);
+
+
 const [certInput, setCertInput] = useState('');
 const [editIndex, setEditIndex] = useState(null);
+
+
+
+
+const [editCertId, setEditCertId] = useState(null);
+
 
 
 const [educations, setEducations] = useState([]);
 const [courses, setCourses] = useState([]);
 const [specializations, setSpecializations] = useState([]);
 
-const openCertDrawer = (cert = '', index = null) => {
-  setCertInput(cert);
-  setEditIndex(index);
+
+
+
+
+const openCertDrawer = (name = "", id = null) => {
+  setCertInput(name);
+  setEditCertId(id);
   setShowCertDrawer(true);
 };
 
@@ -171,6 +181,8 @@ const certRef = useRef(null);
 const resumeRef = useRef(null);
 
 
+
+
 const scrollToSection = (ref) => {
   ref.current?.scrollIntoView({
     behavior: "smooth",
@@ -211,29 +223,26 @@ const menu = [
 
 
 
-  const handleSaveCert = () => {
-  if (!certInput.trim()) return;
 
-  if (editIndex !== null) {
-    // ✏️ Update
-    const updated = [...certifications];
-    updated[editIndex] = certInput;
-    setCertifications(updated);
-  } else {
-    // ➕ Add
-    setCertifications(prev => [...prev, certInput]);
+
+
+
+
+
+const handleDeleteCert = async (id) => {
+  const confirm = await showConfirm("Delete certification?");
+  if (!confirm) return;
+
+  try {
+    await api.delete(`/candidate/certification/${id}`);
+    showSuccess("Deleted");
+
+    await fetchProfile();
+
+  } catch {
+    showError("Delete failed");
   }
-
-  setShowCertDrawer(false);
-  setCertInput('');
-  setEditIndex(null);
 };
-
-
-const handleDeleteCert = (index) => {
-  setCertifications(prev => prev.filter((_, i) => i !== index));
-};
-
 
   const handleAddSkill = (e) => {
   if (e.key === 'Enter') {
@@ -273,48 +282,57 @@ const [eduForm, setEduForm] = useState({
 });
 
 
-const openEduDrawer = (data = null, index = null) => {
+
+
+const openEduDrawer = (data = null) => {
   if (data) {
-    setEduForm(data);
-    setEditEduIndex(index);
+    setEduForm({
+      id: data.id,
+      education: data.education_id,
+      course: data.course_id,
+      specialization: data.specialization_id,
+      institution: data.institution,
+      startYear: data.start_year,
+      endYear: data.end_year,
+      courseType: data.course_type,
+      gradingSystem: data.grading_system || ""
+    });
   } else {
     setEduForm({
+      id: null,
       education: '',
       course: '',
       specialization: '',
       institution: '',
       startYear: '',
       endYear: '',
-      courseType: 'Full time'
+      courseType: 'Full time',
+      gradingSystem: ''
     });
-    setEditEduIndex(null);
   }
 
   setShowEduDrawer(true);
 };
 
 
-const handleSaveEducation = () => {
-  if (!eduForm.course || !eduForm.institution) return;
 
-  if (editEduIndex !== null) {
-    const updated = [...educationList];
-    updated[editEduIndex] = eduForm;
-    setEducationList(updated);
-  } else {
-    setEducationList(prev => [...prev, eduForm]);
+
+const handleDeleteEducation = async (id) => {
+  const confirm = await showConfirm("Delete education?");
+  if (!confirm) return;
+
+  try {
+    await api.delete(`/candidate/education/${id}`);
+    showSuccess("Deleted");
+
+    await fetchProfile();
+
+  } catch {
+    showError("Delete failed");
   }
-
-  setShowEduDrawer(false);
 };
 
-const handleDeleteEducation = (index) => {
-  setEducationList(prev => prev.filter((_, i) => i !== index));
-};
 
-// useEffect(() => {
-//   fetchEducations();
-// }, []);
 
 const fetchEducations = async () => {
   try {
@@ -399,6 +417,7 @@ const handleSaveAbout = async () => {
 
 useEffect(() => {
   fetchProfile();
+  fetchEducations()
 }, []);
 
 
@@ -427,6 +446,11 @@ const fetchProfile = async () => {
 
     // ✅ EXPERIENCE
     setExperiences(data.experiences || []);
+
+    setEducationList(data?.educations || []);
+
+    setCertifications(data?.certifications || []);
+    setResumes(data?.resumes || []);
 
     closeAlert();
 
@@ -466,14 +490,6 @@ const handleSaveSkills = async () => {
     showError(message);
   }
 };
-
-
-
-
-
-// Experiance
-
-
 
 
 
@@ -533,6 +549,84 @@ const handleSaveExperience = async () => {
 
 
 
+const handleSaveCert = async () => {
+  if (!certInput.trim()) {
+    return showError("Certification required");
+  }
+
+  try {
+    showLoading();
+
+    if (editCertId) {
+      // ✅ UPDATE
+      await api.put(`/candidate/certification/${editCertId}`, {
+        name: certInput
+      });
+    } else {
+      // ✅ CREATE
+      await api.post(`/candidate/certification`, {
+        name: certInput
+      });
+    }
+
+    closeAlert();
+    showSuccess("Saved successfully");
+
+    setShowCertDrawer(false);
+    setCertInput("");
+    setEditCertId(null);
+
+    await fetchProfile();
+
+  } catch (error) {
+    closeAlert();
+    showError(error.response?.data?.message || "Save failed");
+  }
+};
+
+
+const handleSaveEducation = async () => {
+  if (!eduForm.course || !eduForm.institution) {
+    return showError("Course & Institution required");
+  }
+
+  try {
+    showLoading();
+
+    const payload = {
+      education_id: eduForm.education,
+      course_id: eduForm.course,
+      specialization_id: eduForm.specialization,
+      institution: eduForm.institution,
+      start_year: eduForm.startYear,
+      end_year: eduForm.endYear,
+      course_type: eduForm.courseType,
+      grading_system: eduForm.gradingSystem
+    };
+
+    if (eduForm.id) {
+      await api.put(`/candidate/education/${eduForm.id}`, payload);
+    } else {
+      await api.post(`/candidate/education`, payload);
+    }
+
+    closeAlert();
+    showSuccess("Saved successfully");
+
+    setShowEduDrawer(false);
+
+    // ✅ REFRESH DATA
+    await fetchProfile();
+
+  } catch (error) {
+    closeAlert();
+    showError(error.response?.data?.message || "Save failed");
+  }
+};
+
+
+
+
 
 const handleDeleteExperience = async (id) => {
   const confirm = await showConfirm("Delete this experience?");
@@ -550,6 +644,97 @@ const handleDeleteExperience = async (id) => {
   }
 };
 
+
+const handleUploadResume = async (file) => {
+  const formData = new FormData();
+  formData.append("resume", file);
+
+  try {
+    await api.post("/candidate/resume", formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+
+    showSuccess("Uploaded");
+    fetchProfile();
+
+  } catch (error) {
+    showError(error.response?.data?.message);
+  }
+};
+
+
+
+
+const handleDownloadResume = async (id) => {
+  try {
+    const res = await api.get(`/candidate/resume/${id}/download`, {
+      responseType: "blob"
+    });
+
+    const url = window.URL.createObjectURL(new Blob([res.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "resume");
+    document.body.appendChild(link);
+    link.click();
+
+  } catch {
+    showError("Download failed");
+  }
+};
+
+
+const handleDeleteResume = async (id) => {
+  const confirm = await showConfirm("Delete resume?");
+  if (!confirm) return;
+
+  try {
+    await api.delete(`/candidate/resume/${id}`);
+    showSuccess("Deleted");
+
+    await fetchProfile();
+
+  } catch {
+    showError("Delete failed");
+  }
+};
+
+
+const handleFileChange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // ✅ VALIDATION (frontend)
+  const allowedTypes = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  ];
+
+  if (!allowedTypes.includes(file.type)) {
+    return showError("Only PDF or DOC/DOCX allowed");
+  }
+
+  const formData = new FormData();
+  formData.append("resume", file);
+
+  try {
+    showLoading();
+
+    await api.post("/candidate/resume", formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+
+    closeAlert();
+    showSuccess("Resume uploaded");
+
+    await fetchProfile();
+
+  } catch (error) {
+    closeAlert();
+    showError(error.response?.data?.message || "Upload failed");
+  }
+};
 
 return (
   <div className="max-w-7xl mx-auto p-4 space-y-4">
@@ -764,7 +949,7 @@ return (
     )}
   </div>
 
-  <div>{exp.location} sdsdsad</div>
+  <div>{exp.job_type || "N/A"} </div>
 
 </div>
       </div>
@@ -786,7 +971,7 @@ return (
 </div>
 
         {/* 🔥 EDUCATION */}
-       <div ref={eduRef} className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition">
+     <div ref={eduRef} className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition">
 
   {/* HEADER */}
   <div className="flex justify-between items-center mb-4">
@@ -809,43 +994,42 @@ return (
 
   {/* LIST */}
   <div className="space-y-4">
-    {educationList.map((edu, index) => (
+    {educationList.map((edu) => (
       <div
-        key={index}
+        key={edu.id}
         className="flex justify-between items-start border-b last:border-none pb-4"
       >
 
-        {/* LEFT CONTENT */}
+        {/* LEFT */}
         <div>
 
-          {/* DEGREE */}
-          <h4 className="font-semibold text-foreground">
-            {edu.course} {edu.specialization && `(${edu.specialization})`}
-          </h4>
+          {/* COURSE */}
+         <h4 className="font-semibold">
+  {edu.course_name}
+  {edu.specialization_name && ` (${edu.specialization_name})`}
+</h4>
 
-          {/* SCHOOL */}
-          <p className="text-sm text-muted-foreground">
-            {edu.institution}
-          </p>
+<p className="text-sm text-muted-foreground">
+  {edu.institution}
+</p>
 
-          {/* DETAILS */}
-          <p className="text-xs text-muted-foreground mt-1">
-            {edu.startYear} - {edu.endYear} • {edu.courseType}
-          </p>
+<p className="text-xs text-muted-foreground">
+  {edu.start_year} - {edu.end_year || "Present"} • {edu.course_type}
+</p>
 
         </div>
 
         {/* ACTIONS */}
         <div className="flex gap-3 text-xs mt-1">
           <button
-            onClick={() => openEduDrawer(edu, index)}
+            onClick={() => openEduDrawer(edu)}
             className="text-blue-600 font-semibold"
           >
             Edit
           </button>
 
           <button
-            onClick={() => handleDeleteEducation(index)}
+            onClick={() => handleDeleteEducation(edu.id)}
             className="text-red-500 font-semibold"
           >
             Delete
@@ -856,7 +1040,7 @@ return (
     ))}
   </div>
 
-      </div>
+    </div>
 
         {/* 🔥 CERTIFICATIONS */}
         <div ref={certRef} className="bg-white rounded-2xl p-5 shadow-sm">
@@ -865,7 +1049,7 @@ return (
             <button onClick={() => openCertDrawer()} className="text-blue-600 text-sm">Add</button>
           </div>
 
-          {certifications.map((cert, i) => (
+          {/* {certifications.map((cert, i) => (
             <div key={i} className="flex justify-between items-center bg-muted/40 px-3 py-2 rounded mb-2">
               <span>{cert}</span>
 
@@ -874,18 +1058,95 @@ return (
                 <button onClick={() => handleDeleteCert(i)} className="text-red-500">Delete</button>
               </div>
             </div>
-          ))}
+          ))} */}
+
+          {certifications.map((cert) => (
+  <div key={cert.id} className="flex justify-between items-center bg-muted/40 px-3 py-2 rounded mb-2">
+    
+    <span>{cert.name}</span>
+
+    <div className="flex gap-2 text-xs">
+      <button onClick={() => openCertDrawer(cert.name, cert.id)} className="text-blue-600">
+        Edit
+      </button>
+
+      <button onClick={() => handleDeleteCert(cert.id)} className="text-red-500">
+        Delete
+      </button>
+    </div>
+
+  </div>
+))}
         </div>
 
         {/* 🔥 RESUME */}
-        <div ref={resumeRef} className="bg-white rounded-2xl p-5 shadow-sm">
-          <h3 className="font-semibold mb-3">Resume</h3>
+      
 
-          <div className="border-dashed border-2 rounded-xl p-6 text-center cursor-pointer"
-            onClick={() => fileInputRef.current?.click()}>
-            Upload Resume
-          </div>
+        <div ref={resumeRef} className="bg-white rounded-2xl p-5 shadow-sm">
+
+  <h3 className="font-semibold mb-3">Resume</h3>
+
+  {/* UPLOAD BOX */}
+  <div
+    className="border-dashed border-2 rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50 transition"
+    onClick={() => fileInputRef.current?.click()}
+  >
+    Upload Resume (PDF / DOC)
+  </div>
+
+  {/* HIDDEN INPUT */}
+  <input
+    type="file"
+    ref={fileInputRef}
+    onChange={handleFileChange}
+    className="hidden"
+  />
+
+  {/* LIST */}
+  <div className="mt-4 space-y-3">
+
+    {resumes.length === 0 && (
+      <p className="text-sm text-muted-foreground">
+        No resume uploaded yet
+      </p>
+    )}
+
+    {resumes.map((res) => (
+      <div
+        key={res.id}
+        className="flex justify-between items-center border rounded-lg px-3 py-2"
+      >
+
+        {/* FILE NAME */}
+        <span className="text-sm truncate">
+          {res.file_name}
+        </span>
+
+        {/* ACTIONS */}
+        <div className="flex gap-3 text-xs">
+
+          <button
+            onClick={() => handleDownloadResume(res.id, res.file_name)}
+            className="text-blue-600 font-semibold"
+          >
+            Download
+          </button>
+
+          <button
+            onClick={() => handleDeleteResume(res.id)}
+            className="text-red-500 font-semibold"
+          >
+            Delete
+          </button>
+
         </div>
+
+      </div>
+    ))}
+
+  </div>
+
+</div>
 
       </div>
     </div>
@@ -1513,6 +1774,73 @@ return (
     </div>
   </div>
   )}
+
+
+
+
+
+{showCertDrawer && (
+  <div className="fixed inset-0 z-50 flex">
+
+    {/* OVERLAY */}
+    <div
+      className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+      onClick={() => setShowCertDrawer(false)}
+    />
+
+    {/* DRAWER */}
+    <div className="ml-auto w-full sm:w-[400px] h-full bg-white shadow-2xl p-6 relative animate-slideIn">
+
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-lg font-semibold">
+          {editCertId ? "Edit Certification" : "Add Certification"}
+        </h3>
+
+        <button
+          onClick={() => setShowCertDrawer(false)}
+          className="text-gray-500 hover:text-black text-lg"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* INPUT */}
+      <div className="mb-4">
+        <label className="text-sm font-medium mb-1 block">
+          Certification Name
+        </label>
+
+        <input
+          value={certInput}
+          onChange={(e) => setCertInput(e.target.value)}
+          placeholder="e.g. AWS Certified Developer"
+          className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+        />
+      </div>
+
+      {/* ACTIONS */}
+      <div className="absolute bottom-6 left-6 right-6 flex gap-3">
+
+        <button
+          onClick={() => setShowCertDrawer(false)}
+          className="flex-1 border rounded-lg py-2 text-sm font-medium"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={handleSaveCert}
+          className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm font-semibold hover:bg-blue-700 transition"
+        >
+          Save
+        </button>
+
+      </div>
+
+    </div>
+  </div>
+)}
 
   </div>
 );
