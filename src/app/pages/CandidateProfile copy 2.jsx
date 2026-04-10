@@ -73,7 +73,6 @@ export function CandidateProfile() {
   const [showExpDrawer, setShowExpDrawer] = useState(false);
   const [editExp, setEditExp] = useState(null);
   const [editingSkills, setEditingSkills] = useState(false);
-  const [profileCompletion, setProfileCompletion] = useState(0);
 
 
   const [image, setImage] = useState(null);
@@ -542,7 +541,6 @@ export function CandidateProfile() {
       setPhone(data.phone || "");
       setLocation(data.location || "");
       setPic(data.profile_pic_url  || "");
-      setProfileCompletion(data.profile_completion || 0);
       // setOriginalAbout(data.about || "");
 
       // ✅ SKILLS
@@ -858,8 +856,9 @@ export function CandidateProfile() {
     }
   };
 
-const CircularProgress = ({ percentage }) => {
-  const radius = 45;
+
+  const CircularProgress = ({ percentage }) => {
+  const radius = 40;
   const stroke = 6;
   const normalizedRadius = radius - stroke * 0.5;
   const circumference = normalizedRadius * 2 * Math.PI;
@@ -870,6 +869,8 @@ const CircularProgress = ({ percentage }) => {
   return (
     <div className="flex flex-col items-center">
       <svg height={radius * 2} width={radius * 2}>
+        
+        {/* Background Circle */}
         <circle
           stroke="#e5e7eb"
           fill="transparent"
@@ -879,6 +880,7 @@ const CircularProgress = ({ percentage }) => {
           cy={radius}
         />
 
+        {/* Progress Circle */}
         <circle
           stroke={
             percentage < 40
@@ -889,10 +891,10 @@ const CircularProgress = ({ percentage }) => {
           }
           fill="transparent"
           strokeWidth={stroke}
-          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDasharray={circumference + " " + circumference}
           style={{
             strokeDashoffset,
-            transition: "stroke-dashoffset 0.6s ease",
+            transition: "stroke-dashoffset 0.5s ease",
           }}
           strokeLinecap="round"
           r={normalizedRadius}
@@ -901,7 +903,8 @@ const CircularProgress = ({ percentage }) => {
         />
       </svg>
 
-      <div className="-mt-14 text-sm font-bold">
+      {/* Percentage Text */}
+      <div className="-mt-12 text-sm font-semibold">
         {percentage}%
       </div>
 
@@ -916,129 +919,123 @@ const CircularProgress = ({ percentage }) => {
     <div className="max-w-7xl mx-auto p-4 space-y-4">
 
       {/* 🔥 HEADER */}
-    
-    <div className="bg-white rounded-2xl p-5 shadow-sm">
+      <div className="bg-white rounded-2xl p-5 shadow-sm flex justify-between items-center">
+        <div className="flex gap-4 items-center">
 
-  {/* 🔥 MAIN ROW */}
-  <div className="flex justify-between items-center">
 
-    {/* ✅ LEFT SIDE */}
-    <div className="flex gap-4 items-center">
+          <div className="relative w-20 h-20">
+            <img
+             
 
-      {/* PROFILE IMAGE */}
-      <div className="relative w-20 h-20">
-        <img
-          src={pic || "/default-avatar.png"}
-          alt="Profile"
-          className="w-20 h-20 rounded-full object-cover border"
-        />
+               src={pic || "/default-avatar.png"}
+              alt="Profile"
+              className="w-20 h-20 rounded-full object-cover border"
+            />
 
-        {/* Upload Button */}
-        <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-1 rounded-full cursor-pointer text-xs">
-          📷
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            className="hidden"
-          />
-        </label>
-      </div>
-
-      {/* SAVE IMAGE BUTTON */}
-      {image && (
-        <button
-          onClick={handleUpload}
-          className="text-sm text-green-600"
-        >
-          Save Image
-        </button>
-      )}
-
-      {/* USER DETAILS */}
-      <div>
-        <h2 className="text-lg font-bold">{user.name}</h2>
-
-        <p className="text-xs text-muted-foreground">
-          Profile last updated - Today
-        </p>
-
-        {/* 🔹 INFO */}
-        <div className="flex flex-wrap gap-4 text-xs mt-2 text-muted-foreground">
-
-          {/* LOCATION */}
-          <div className="flex items-center gap-1">
-            <span>📍</span>
-
-            {editField === "location" ? (
-              <>
-                <input
-                  name="location"
-                  value={formData.location}
-                  onChange={handleChange}
-                  className="border px-1"
-                />
-                <button
-                  onClick={() => handleSave("location")}
-                  className="text-green-600"
-                >
-                  ✔
-                </button>
-              </>
-            ) : (
-              <>
-                <span>{location || "Location"}</span>
-                <button onClick={() => setEditField("location")}>✏️</button>
-              </>
-            )}
+            {/* Upload Button */}
+            <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-1 rounded-full cursor-pointer text-xs">
+              📷
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+            </label>
           </div>
 
-          {/* PHONE */}
-          <div className="flex items-center gap-1">
-            <span>📞</span>
+          {/* Upload Button */}
+          {image && (
+            <button
+              onClick={handleUpload}
+              className="mt-2 text-sm text-green-600"
+            >
+              Save Image
+            </button>
+          )}
 
-            {editField === "phone" ? (
-              <>
-                <input
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="border px-1"
-                />
-                <button
-                  onClick={() => handleSave("phone")}
-                  className="text-green-600"
-                >
-                  ✔
-                </button>
-              </>
-            ) : (
-              <>
-                <span>{phone || "Phone"}</span>
-                <button onClick={() => setEditField("phone")}>✏️</button>
-              </>
-            )}
+          <div>
+            <h2 className="text-lg font-bold">{user.name}</h2>
+            <p className="text-xs text-muted-foreground">Profile last updated - Today</p>
+
+            <div className="flex flex-wrap gap-4 text-xs mt-2 text-muted-foreground">
+
+              {/* LOCATION */}
+              <div className="flex items-center gap-1">
+                <span>📍</span>
+
+                {editField === "location" ? (
+                  <>
+                    <input
+                      name="location"
+                      value={formData.location}
+                      onChange={handleChange}
+                      className="border px-1"
+                    />
+                    <button onClick={() => handleSave("location")} className="text-green-600">✔</button>
+                  </>
+                ) : (
+                  <>
+                    <span>{location || "Location"}</span>
+                    <button onClick={() => setEditField("location")}>✏️</button>
+                  </>
+                )}
+              </div>
+
+              {/* PHONE */}
+              <div className="flex items-center gap-1">
+                <span>📞</span>
+
+                {editField === "phone" ? (
+                  <>
+                    <input
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      className="border px-1"
+                    />
+                    <button onClick={() => handleSave("phone")} className="text-green-600">✔</button>
+                  </>
+                ) : (
+                  <>
+                    <span>{phone || "Phone"}</span>
+                    <button onClick={() => setEditField("phone")}>✏️</button>
+                  </>
+                )}
+              </div>
+
+              {/* EMAIL */}
+              <div className="flex items-center gap-1">
+                <span>✉️</span>
+
+                {editField === "email" ? (
+                  <>
+                    <input
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="border px-1"
+                    />
+                    <button onClick={() => handleSave("email")} className="text-green-600">✔</button>
+                  </>
+                ) : (
+                  <>
+                    <span> {formData.email}</span>
+                  </>
+                )}
+              </div>
+
+            </div>
+
+
           </div>
 
-          {/* EMAIL (READ ONLY) */}
-          <div className="flex items-center gap-1">
-            <span>✉️</span>
-            <span>{formData.email}</span>
-          </div>
-
+          <CircularProgress percentage={user.profile_completion || 0} />
         </div>
+
+       
       </div>
-    </div>
 
-    {/* ✅ RIGHT SIDE (CIRCULAR PROGRESS) */}
-    <div className="ml-4">
-      {/* <CircularProgress percentage={user.profile_completion || 0} /> */}
-
-      <CircularProgress percentage={profileCompletion} />
-    </div>
-
-  </div>
-</div>
 
       
 
