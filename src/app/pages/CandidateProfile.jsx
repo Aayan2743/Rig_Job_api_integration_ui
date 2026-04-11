@@ -59,6 +59,11 @@ function EditableSection({ title, icon: Icon, children, onEdit }) {
 
 export function CandidateProfile() {
 
+
+
+
+
+
   const API_URL = import.meta.env.VITE_API_URL;
 
   console.log("API URL:", API_URL); // Debugging line
@@ -104,6 +109,9 @@ export function CandidateProfile() {
       [e.target.name]: e.target.value,
     });
   };
+
+
+
 
 
   const handleImageChange = (e) => {
@@ -294,14 +302,24 @@ export function CandidateProfile() {
   };
 
 
+  // const menu = [
+  //   { label: "About", ref: aboutRef },
+  //   { label: "Key skills", ref: skillsRef },
+  //   { label: "Employment", ref: expRef },
+  //   { label: "Education", ref: eduRef },
+  //   { label: "Certifications", ref: certRef },
+  //   { label: "Resume", ref: resumeRef }
+  // ];
+
+
   const menu = [
-    { label: "About", ref: aboutRef },
-    { label: "Key skills", ref: skillsRef },
-    { label: "Employment", ref: expRef },
-    { label: "Education", ref: eduRef },
-    { label: "Certifications", ref: certRef },
-    { label: "Resume", ref: resumeRef }
-  ];
+  { label: "About", ref: aboutRef, key: "about" },
+  { label: "Key skills", ref: skillsRef, key: "skills" },
+  { label: "Employment", ref: expRef, key: "experience" },
+  { label: "Education", ref: eduRef, key: "education" },
+  { label: "Certifications", ref: certRef, key: "certifications" },
+  { label: "Resume", ref: resumeRef, key: "resume" }
+];
 
   const handleFileSelect = (files) => {
     const valid = Array.from(files).filter(f => f.type === 'application/pdf');
@@ -858,6 +876,17 @@ export function CandidateProfile() {
     }
   };
 
+
+
+    const sectionProgress = {
+  about: about ? 100 : 0,
+  skills: skills.length > 0 ? 100 : 0,
+  experience: experiences.length > 0 ? 100 : 0,
+  education: educationList.length > 0 ? 100 : 0,
+  certifications: certifications.length > 0 ? 100 : 0,
+  resume: resumes.length > 0 ? 100 : 0,
+};
+
 const CircularProgress = ({ percentage }) => {
   const radius = 45;
   const stroke = 6;
@@ -928,7 +957,8 @@ const CircularProgress = ({ percentage }) => {
       {/* PROFILE IMAGE */}
       <div className="relative w-20 h-20">
         <img
-          src={pic || "/default-avatar.png"}
+          // src={pic || "/default-avatar.png"}
+          src={preview || pic || "/default-avatar.png"}
           alt="Profile"
           className="w-20 h-20 rounded-full object-cover border"
         />
@@ -1046,23 +1076,58 @@ const CircularProgress = ({ percentage }) => {
       <div className="grid grid-cols-12 gap-4">
 
         {/* ✅ SIDEBAR */}
-        <div className="col-span-3">
-          <div className="bg-white rounded-2xl p-4 shadow-sm text-sm sticky top-4">
-            <h3 className="font-semibold mb-3">Quick links</h3>
+       {/* ✅ NEW SIDEBAR */}
+<div className="col-span-3">
+  <div className="bg-white rounded-2xl p-5 shadow-sm sticky top-4 border border-gray-100">
 
-            {menu.map((item, i) => (
+    <h3 className="font-semibold text-base mb-4">Profile Sections</h3>
+
+    <div className="space-y-3">
+      {menu.map((item, i) => {
+        const percent = sectionProgress[item.key];
+
+        return (
+          <div
+            key={i}
+            onClick={() => scrollToSection(item.ref)}
+            className="p-3 rounded-xl border hover:shadow-md transition cursor-pointer group"
+          >
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-sm font-medium group-hover:text-blue-600">
+                {item.label}
+              </span>
+
+              <span className={`text-xs font-semibold ${
+                percent === 100
+                  ? "text-green-600"
+                  : percent > 0
+                  ? "text-yellow-600"
+                  : "text-gray-400"
+              }`}>
+                {percent}%
+              </span>
+            </div>
+
+            <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
               <div
-                key={i}
-                onClick={() => scrollToSection(item.ref)}
-                className="flex justify-between py-2 border-b cursor-pointer hover:text-primary"
-              >
-                <span>{item.label}</span>
-                <span className="text-blue-600 text-xs">View</span>
-              </div>
-            ))}
+                className={`h-full transition-all duration-500 ${
+                  percent === 100
+                    ? "bg-green-500"
+                    : percent > 0
+                    ? "bg-yellow-500"
+                    : "bg-gray-300"
+                }`}
+                style={{ width: `${percent}%` }}
+              />
+            </div>
 
           </div>
-        </div>
+        );
+      })}
+    </div>
+
+  </div>
+</div>
 
         {/* ✅ RIGHT CONTENT */}
         <div className="col-span-9 space-y-5">

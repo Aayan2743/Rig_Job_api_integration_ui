@@ -9,7 +9,14 @@ export default function CategoryManager({ setCategoryCount }) {
 
   const [showDrawer, setShowDrawer] = useState(false);
   const [editItem, setEditItem] = useState(null);
-  const [form, setForm] = useState({ name: '' });
+
+
+  const [form, setForm] = useState({
+  name: '',
+  logo: null
+});
+
+const [preview, setPreview] = useState(null);
 
   // ✅ Fetch Categories
   const fetchCategories = async (page = 1) => {
@@ -34,17 +41,23 @@ export default function CategoryManager({ setCategoryCount }) {
   // ✅ Drawer controls
   const openDrawer = (item = null) => {
     setEditItem(item);
-    setForm({ name: item?.name || '' });
+    // setForm({ name: item?.name || '' });
+    setForm({
+  name: item?.name || '',
+  logo: null
+});
+setPreview(item?.logo || null);
     setShowDrawer(true);
   };
 
   const closeDrawer = () => {
     setShowDrawer(false);
     setEditItem(null);
+     setPreview(null);
   };
 
   // ✅ Save (Add / Edit)
-const handleSave = async () => {
+const handleSaves = async () => {
   try {
     if (!form.name.trim()) {
       showError("Name is required");
@@ -82,6 +95,55 @@ const handleSave = async () => {
   }
 };
 
+
+const handleSave = async () => {
+  try {
+    if (!form.name.trim()) {
+      showError("Name is required");
+      return;
+    }
+
+    showLoading();
+
+    const formData = new FormData();
+    formData.append("name", form.name);
+
+    if (form.logo) {
+      formData.append("logo", form.logo);
+    }
+
+    if (editItem) {
+      await api.post(`/admin/categories/${editItem.id}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+    } else {
+      await api.post(`/admin/categories`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+    }
+
+    closeAlert();
+
+    showSuccess(
+      editItem
+        ? "Category updated successfully"
+        : "Category added successfully"
+    );
+
+    await fetchCategories(1);
+    closeDrawer();
+
+  } catch (err) {
+    closeAlert();
+
+    if (err.response?.status === 422) {
+      showError(err.response.data.errors);
+    } else {
+      showError(err.response?.data?.message || "Something went wrong");
+    }
+  }
+};
+
   // ✅ Delete
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this category?')) return;
@@ -107,7 +169,7 @@ const handleSave = async () => {
           className="px-4 py-2 rounded-lg text-sm font-semibold text-white"
           style={{ background: 'linear-gradient(135deg, #0891B2, #0E7490)' }}
         >
-          + Add Category
+          + Add Category 
         </button>
       </div>
 
@@ -132,14 +194,23 @@ const handleSave = async () => {
                 key={item.id}
                 className="flex justify-between items-center px-4 py-3 hover:bg-muted/10"
               >
-                <p className="text-sm font-medium">{item.name}</p>
+               <div className="flex items-center gap-3">
+                  {item.logo && (
+                    <img
+                      src={item.logo}
+                      alt='Logo'
+                      className="w-10 h-10 rounded object-cover"
+                    />
+                  )}
+                  <p className="text-sm font-medium">{item.name}</p>
+                </div>
 
                 <div className="flex gap-3">
                   <button
                     onClick={() => openDrawer(item)}
                     className="text-blue-600 text-xs font-semibold"
                   >
-                    Edit
+                    Edit 
                   </button>
 
                   <button
@@ -189,6 +260,28 @@ const handleSave = async () => {
               placeholder="Enter category name"
               className="w-full px-4 py-2 border rounded-lg mb-4"
             />
+
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files[0];
+
+                setForm({ ...form, logo: file });
+
+                if (file) {
+                  setPreview(URL.createObjectURL(file));
+                }
+              }}
+              className="w-full mb-3"
+            />
+
+            {preview && (
+            <img
+              src={preview}
+              className="w-16 h-16 rounded object-cover mb-3 border"
+            />
+          )}
 
             <div className="flex gap-2">
               <button

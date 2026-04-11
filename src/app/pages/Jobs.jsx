@@ -1,19 +1,24 @@
-import { useState } from 'react';
+import { useState,useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, MapPin, DollarSign, Clock, SlidersHorizontal, ChevronDown, X, Building2, Star, TrendingUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ApplyNowPaymentModal } from '../components/ApplyNowPaymentModal.jsx';
 
-const allJobs = [
-  { id: 1, title: 'Senior Drilling Engineer', company: 'Shell Energy', location: 'Houston, TX', type: 'Full-time', salary: '$120k – $180k', logo: '', posted: '2 days ago', category: 'Engineering', experience: '5–8 years', featured: true },
-  { id: 2, title: 'Safety Manager', company: 'BP Operations', location: 'Aberdeen, UK', type: 'Full-time', salary: '$90k – $130k', logo: '', posted: '1 week ago', category: 'Safety & HSE', experience: '3–5 years', featured: false },
-  { id: 3, title: 'Offshore Rig Supervisor', company: 'Chevron', location: 'Gulf of Mexico', type: 'Contract', salary: '$150k – $200k', logo: '', posted: '3 days ago', category: 'Operations', experience: '8+ years', featured: true },
-  { id: 4, title: 'Process Engineer', company: 'ExxonMobil', location: 'Singapore', type: 'Full-time', salary: '$95k – $140k', logo: '', posted: '5 days ago', category: 'Engineering', experience: '3–5 years', featured: false },
-  { id: 5, title: 'HSE Coordinator', company: 'TotalEnergies', location: 'Paris, France', type: 'Full-time', salary: '$70k – $95k', logo: '', posted: '1 week ago', category: 'Safety & HSE', experience: '2–4 years', featured: false },
-  { id: 6, title: 'Maintenance Engineer', company: 'Equinor', location: 'Oslo, Norway', type: 'Full-time', salary: '$85k – $115k', logo: '', posted: '4 days ago', category: 'Engineering', experience: '4–6 years', featured: false },
-  { id: 7, title: 'Project Manager', company: 'ConocoPhillips', location: 'London, UK', type: 'Full-time', salary: '$110k – $160k', logo: '', posted: '2 days ago', category: 'Management', experience: '6–10 years', featured: false },
-  { id: 8, title: 'Field Operations Technician', company: 'Halliburton', location: 'Dubai, UAE', type: 'Contract', salary: '$60k – $85k', logo: '', posted: '1 day ago', category: 'Operations', experience: '1–3 years', featured: false },
-];
+
+import { useParams,useLocation  } from "react-router-dom";
+import api from '../../utils/api.js';
+
+
+// const allJobs = [
+//   { id: 1, title: 'Senior Drilling Engineer', company: 'Shell Energy', location: 'Houston, TX', type: 'Full-time', salary: '$120k – $180k', logo: '', posted: '2 days ago', category: 'Engineering', experience: '5–8 years', featured: true },
+//   { id: 2, title: 'Safety Manager', company: 'BP Operations', location: 'Aberdeen, UK', type: 'Full-time', salary: '$90k – $130k', logo: '', posted: '1 week ago', category: 'Safety & HSE', experience: '3–5 years', featured: false },
+//   { id: 3, title: 'Offshore Rig Supervisor', company: 'Chevron', location: 'Gulf of Mexico', type: 'Contract', salary: '$150k – $200k', logo: '', posted: '3 days ago', category: 'Operations', experience: '8+ years', featured: true },
+//   { id: 4, title: 'Process Engineer', company: 'ExxonMobil', location: 'Singapore', type: 'Full-time', salary: '$95k – $140k', logo: '', posted: '5 days ago', category: 'Engineering', experience: '3–5 years', featured: false },
+//   { id: 5, title: 'HSE Coordinator', company: 'TotalEnergies', location: 'Paris, France', type: 'Full-time', salary: '$70k – $95k', logo: '', posted: '1 week ago', category: 'Safety & HSE', experience: '2–4 years', featured: false },
+//   { id: 6, title: 'Maintenance Engineer', company: 'Equinor', location: 'Oslo, Norway', type: 'Full-time', salary: '$85k – $115k', logo: '', posted: '4 days ago', category: 'Engineering', experience: '4–6 years', featured: false },
+//   { id: 7, title: 'Project Manager', company: 'ConocoPhillips', location: 'London, UK', type: 'Full-time', salary: '$110k – $160k', logo: '', posted: '2 days ago', category: 'Management', experience: '6–10 years', featured: false },
+//   { id: 8, title: 'Field Operations Technician', company: 'Halliburton', location: 'Dubai, UAE', type: 'Contract', salary: '$60k – $85k', logo: '', posted: '1 day ago', category: 'Operations', experience: '1–3 years', featured: false },
+// ];
 
 const jobTypes = ['Full-time', 'Part-time', 'Contract', 'Temporary'];
 const experienceLevels = ['Entry Level (0–2 yrs)', 'Mid Level (2–5 yrs)', 'Senior (5–10 yrs)', 'Expert (10+ yrs)'];
@@ -45,6 +50,25 @@ function FilterChip({ label, onRemove }) {
 }
 
 export function Jobs() {
+
+
+const location = useLocation();
+const params = new URLSearchParams(location.search);
+
+const slug = params.get("category"); // ✅ important
+
+console.log("Slug from URL:", slug);
+
+
+  const [jobs, setJobs] = useState([]);
+const [loading, setLoading] = useState(false);
+
+const [pagination, setPagination] = useState({});
+const [page, setPage] = useState(1);
+
+const [selectedSalary, setSelectedSalary] = useState([]);
+
+
   const [showFilters, setShowFilters] = useState(false);
   const [selectedJobTypes, setSelectedJobTypes] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
@@ -53,6 +77,8 @@ export function Jobs() {
   const [locationQ, setLocationQ] = useState('');
   const [sortBy, setSortBy] = useState('Most Recent');
   const [showSortMenu, setShowSortMenu] = useState(false);
+
+
 
   const toggleFilter = (arr, setArr, val) => {
     setArr(arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val]);
@@ -66,14 +92,99 @@ export function Jobs() {
 
   const clearAll = () => { setSelectedJobTypes([]); setSelectedCategories([]); setSelectedExperience([]); };
 
-  const filteredJobs = allJobs.filter(job => {
-    if (selectedJobTypes.length && !selectedJobTypes.includes(job.type)) return false;
-    if (selectedCategories.length && !selectedCategories.includes(job.category)) return false;
-    if (searchQ && !job.title.toLowerCase().includes(searchQ.toLowerCase()) && !job.company.toLowerCase().includes(searchQ.toLowerCase())) return false;
-    if (locationQ && !job.location.toLowerCase().includes(locationQ.toLowerCase())) return false;
-    return true;
-  });
 
+
+
+
+
+useEffect(() => {
+  fetchJobs(1);
+}, [slug, searchQ, locationQ, selectedJobTypes, selectedExperience]);
+
+// const fetchJobs = async () => {
+//   try {
+//     setLoading(true);
+
+//     const res = await api.get(`/companies/jobs/industry/${slug}`);
+
+//     if (res.data.success) {
+//       setJobs(res.data.data);
+//     }
+
+//   } catch (err) {
+//     console.error(err);
+//   } finally {
+//     setLoading(false);
+//   }
+// };
+
+// const fetchJobs = async () => {
+//   try {
+//     setLoading(true);
+
+//     let res;
+
+//     if (slug) {
+//       // ✅ Industry filter
+//       res = await api.get(`/companies/jobs/industry/${slug}`);
+//     } else {
+//       // ✅ All jobs
+//       res = await api.get(`/companies/jobs`);
+//     }
+
+//     if (res.data.success) {
+//       setJobs(res.data.data);
+//     }
+
+//   } catch (err) {
+//     console.error(err);
+//   } finally {
+//     setLoading(false);
+//   }
+// };
+
+
+
+const fetchJobs = async (pageNumber = 1) => {
+  try {
+    setLoading(true);
+
+    const params = {
+      page: pageNumber,
+      search: searchQ,
+      location: locationQ,
+    };
+
+    // ✅ job type
+    if (selectedJobTypes.length) {
+      params.job_type = selectedJobTypes;
+    }
+
+    // ✅ experience
+    if (selectedExperience.length) {
+      params.experience_level = selectedExperience;
+    }
+
+    let res;
+
+    if (slug) {
+      res = await api.get(`/companies/jobs/industry/${slug}`, { params });
+    } else {
+      res = await api.get(`/companies/jobs`, { params });
+    }
+
+    if (res.data.success) {
+      setJobs(res.data.data);
+      setPagination(res.data.pagination);
+      setPage(pageNumber);
+    }
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="min-h-screen bg-background">
 
@@ -194,19 +305,19 @@ export function Jobs() {
                   </FilterSection>
 
                   {/* Salary */}
-                  <FilterSection title="Salary Range">
-                    {salaryRanges.map(range => (
-                      <CheckboxItem
-                        key={range}
-                        label={range}
-                        checked={false}
-                        onChange={() => {}}
-                      />
-                    ))}
-                  </FilterSection>
+                 <FilterSection title="Salary Range">
+  {salaryRanges.map(range => (
+    <CheckboxItem
+      key={range}
+      label={range}
+      checked={selectedSalary.includes(range)} // ✅ dynamic
+      onChange={() => toggleFilter(selectedSalary, setSelectedSalary, range)} // ✅ clickable
+    />
+  ))}
+</FilterSection>
 
                   {/* Category */}
-                  <FilterSection title="Category" noBorder>
+                  {/* <FilterSection title="Category" noBorder>
                     {categories.map(cat => (
                       <CheckboxItem
                         key={cat}
@@ -215,7 +326,7 @@ export function Jobs() {
                         onChange={() => toggleFilter(selectedCategories, setSelectedCategories, cat)}
                       />
                     ))}
-                  </FilterSection>
+                  </FilterSection> */}
                 </div>
               </motion.aside>
             )}
@@ -226,7 +337,7 @@ export function Jobs() {
             {/* Toolbar */}
             <div className="flex items-center justify-between mb-5">
               <p className="text-muted-foreground text-sm">
-                Showing <span className="font-bold text-foreground">{filteredJobs.length}</span> jobs
+                Showing <span className="font-bold text-foreground">{jobs.length}</span> jobs
               </p>
               <div className="relative">
                 <button
@@ -261,14 +372,14 @@ export function Jobs() {
 
             {/* Job Cards */}
             <div className="space-y-4">
-              {filteredJobs.length === 0 ? (
+              {jobs.length === 0 ? (
                 <div className="text-center py-20 text-muted-foreground bg-white rounded-2xl border border-border/60">
                   <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
                   <p className="font-semibold">No jobs match your filters</p>
                   <p className="text-sm mt-1">Try adjusting your search or clearing filters</p>
                 </div>
               ) : (
-                filteredJobs.map((job, index) => (
+                jobs.map((job, index) => (
                   <motion.div
                     key={job.id}
                     initial={{ opacity: 0, y: 16 }}
@@ -284,7 +395,13 @@ export function Jobs() {
                         <div className="flex items-start space-x-4 flex-1 min-w-0">
                           {/* Logo */}
                           <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-2xl flex-shrink-0 shadow-sm">
-                            {job.logo}
+                           
+                    <img
+  src={job.image}
+  alt={job.company_name}
+  className="w-full h-full object-cover"
+/>
+
                           </div>
 
                           <div className="flex-1 min-w-0">
@@ -300,9 +417,11 @@ export function Jobs() {
                             <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors mb-1 truncate">
                               {job.title}
                             </h3>
+
+                             
                             <p className="text-muted-foreground text-sm font-medium flex items-center space-x-1 mb-3">
                               <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
-                              <span>{job.company}</span>
+                              <span>{job.company_name}</span>
                             </p>
 
                             <div className="flex flex-wrap gap-2">
@@ -310,11 +429,15 @@ export function Jobs() {
                                 <MapPin className="w-3 h-3" /> <span>{job.location}</span>
                               </span>
                               <span className="inline-flex items-center space-x-1 text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg font-semibold">
-                                <DollarSign className="w-3 h-3" /> <span>{job.salary}</span>
+                                <DollarSign className="w-3 h-3" /> <span>{job.salary_min} - {job.salary_max}</span>
                               </span>
                               <span className="inline-flex items-center space-x-1 text-xs text-muted-foreground bg-muted/50 px-2.5 py-1 rounded-lg">
-                                <TrendingUp className="w-3 h-3" /> <span>{job.experience}</span>
+                                <TrendingUp className="w-3 h-3" /> <span>{job.experience_level}</span>
                               </span>
+                             <span className="inline-flex items-center space-x-1 text-xs text-muted-foreground">
+                            <span className="font-medium"> Job Type: {job.job_type}</span>
+                          </span>
+
                               <span className="inline-flex items-center space-x-1 text-xs text-muted-foreground">
                                 <Clock className="w-3 h-3" /> <span>Posted {job.posted}</span>
                               </span>
@@ -341,21 +464,21 @@ export function Jobs() {
             </div>
 
             {/* Pagination */}
-            <div className="flex justify-center mt-10 space-x-1">
-              {['‹', '1', '2', '3', '...', '12', '›'].map((p, i) => (
-                <button
-                  key={i}
-                  className={`w-10 h-10 rounded-lg text-sm font-medium transition-all ${
-                    p === '1'
-                      ? 'text-white shadow-md'
-                      : 'border border-border bg-white text-foreground hover:bg-muted/50 hover:border-primary/30'
-                  }`}
-                  style={p === '1' ? { background: 'var(--gradient-primary)' } : {}}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
+          <div className="flex justify-center mt-10 space-x-2">
+  {Array.from({ length: pagination.last_page || 1 }, (_, i) => (
+    <button
+      key={i}
+      onClick={() => fetchJobs(i + 1)}
+      className={`px-3 py-2 rounded ${
+        page === i + 1
+          ? 'bg-primary text-white'
+          : 'bg-white border'
+      }`}
+    >
+      {i + 1}
+    </button>
+  ))}
+</div>
           </div>
         </div>
       </div>

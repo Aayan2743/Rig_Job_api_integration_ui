@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import api from "../../utils/api.js";
 
 
-const relatedsafeJob = [
+const relatedjob = [
   { id: 2, title: 'Drilling Supervisor', company: 'Shell Energy', location: 'Aberdeen, UK', salary: '$100k–$140k', type: 'Full-time' },
   { id: 3, title: 'Completion Engineer', company: 'Shell Energy', location: 'Houston, TX', salary: '$110k–$160k', type: 'Full-time' },
   { id: 4, title: 'Well Engineer', company: 'BP Operations', location: 'Gulf of Mexico', salary: '$105k–$155k', type: 'Contract' },
@@ -15,11 +15,11 @@ const relatedsafeJob = [
 
 const tabs = ['Overview', 'Responsibilities', 'Requirements', 'Benefits'];
 
-export  function JobDetail() {
+export function JobDetail() {
 
   const { id } = useParams();
 
-const [safeJob, setsafeJob] = useState(null);
+const [job, setJob] = useState(null);
 const [loading, setLoading] = useState(false);
 
 
@@ -31,18 +31,18 @@ const [loading, setLoading] = useState(false);
 
 
   useEffect(() => {
-  fetchsafeJob();
+  fetchJob();
 }, [id]);
 
-const fetchsafeJob = async () => {
+const fetchJob = async () => {
   try {
     setLoading(true);
 
     const res = await api.get(`/companies/jobs/${id}`);
 
-    console.log('safeJob details response:', res.data); // Debug log
+    console.log('Job details response:', res.data); // Debug log
     if (res.data.success) {
-      setsafeJob(res.data.data);
+      setJob(res.data.data);
     }
 
   } catch (err) {
@@ -53,46 +53,8 @@ const fetchsafeJob = async () => {
 };
 
 
-
-
-const safesafeJob = {
-  ...safeJob,
-
-  // ✅ SAFE OBJECTS
-  company: safeJob?.company || {},
-  category: safeJob?.category || {},
-
-  // ✅ FIXED FIELDS
-  salary: `$${safeJob?.salary_min || 0}k - $${safeJob?.salary_max || 0}k`,
-  type: safeJob?.job_type || '',
-  experience: safeJob?.experience_level || '',
-  deadline: safeJob?.dead_line
-    ? new Date(safeJob.dead_line).toLocaleDateString()
-    : 'N/A',
-
-  // ✅ FIX MISSING FIELDS (NO CRASH)
-  posted: safeJob?.created_at
-    ? new Date(safeJob.created_at).toLocaleDateString()
-    : '',
-
-  applicants: safeJob?.applicants || 0,
-
-  // ✅ CONVERT STRINGS → ARRAY (CRITICAL FIX)
-  responsibilities: typeof safeJob?.responsibilities === 'string'
-    ? safeJob.responsibilities.split('\n')
-    : safeJob?.responsibilities || [],
-
-  requirements: typeof safeJob?.requirements === 'string'
-    ? safeJob.requirements.split('\n')
-    : safeJob?.requirements || [],
-
-  benefits: safeJob?.benefits || [],
-  skills: safeJob?.skills || [],
-};
-
-
-if (loading || !safeJob) {
-  return <div className="p-10 text-center">Loading safeJob...</div>;
+if (loading || !job) {
+  return <div className="p-10 text-center">Loading job...</div>;
 }
 
   return (
@@ -104,9 +66,9 @@ if (loading || !safeJob) {
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
             <Link to="/" className="hover:text-primary transition-colors">Home</Link>
             <ChevronRight className="w-4 h-4" />
-            <Link to="/safeJob" className="hover:text-primary transition-colors">safeJob</Link>
+            <Link to="/job" className="hover:text-primary transition-colors">job</Link>
             <ChevronRight className="w-4 h-4" />
-            <span className="text-foreground font-medium truncate">{safeJob.title}</span>
+            <span className="text-foreground font-medium truncate">{job.title}</span>
           </div>
         </div>
       </div>
@@ -117,7 +79,7 @@ if (loading || !safeJob) {
           {/* ── Main Content ── */}
           <div className="lg:col-span-2 space-y-5">
 
-            {/* safeJob Header Card */}
+            {/* Job Header Card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -130,17 +92,15 @@ if (loading || !safeJob) {
                 <div className="flex items-start justify-between flex-wrap gap-4 mb-5">
                   <div className="flex items-start space-x-4">
                     <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-4xl flex-shrink-0 shadow-sm">
-                    {safeJob?.company?.image ? (
-                      <img src={safeJob.company.image} className="w-full h-full object-cover" />
-                    ) : '🏢'}
+                      {job.logo}
                     </div>
                     <div>
-                      <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">{safeJob.title}</h1>
+                      <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">{job.title}</h1>
                       <p className="text-muted-foreground font-medium flex items-center space-x-1.5">
                         <Building2 className="w-4 h-4" />
-                        {/* <span>{safeJob.company}</span> */}
-                        <Link to={`/companies/${safeJob?.company?.id}`} className="block text-center text-primary hover:text-primary/80 font-semibold text-sm transition-colors hover:underline">
-                 {safeJob?.company?.company_name}
+                        {/* <span>{job.company}</span> */}
+                        <Link to={`/companies/${job.company}`} className="block text-center text-primary hover:text-primary/80 font-semibold text-sm transition-colors hover:underline">
+                 {job.company}
               </Link>
                       </p>
                     </div>
@@ -161,10 +121,10 @@ if (loading || !safeJob) {
                 {/* Meta tags */}
                 <div className="flex flex-wrap gap-2 mb-5">
                   {[
-                    { icon: MapPin, text: safeJob.location, cls: 'bg-blue-50 text-blue-700' },
-                    { icon: Briefcase, text: safeJob.type, cls: 'bg-emerald-50 text-emerald-700' },
-                    { icon: DollarSign, text: safeJob.salary, cls: 'bg-amber-50 text-amber-700' },
-                    { icon: Award, text: safeJob.experience, cls: 'bg-purple-50 text-purple-700' },
+                    { icon: MapPin, text: job.location, cls: 'bg-blue-50 text-blue-700' },
+                    { icon: Briefcase, text: job.type, cls: 'bg-emerald-50 text-emerald-700' },
+                    { icon: DollarSign, text: job.salary, cls: 'bg-amber-50 text-amber-700' },
+                    { icon: Award, text: job.experience, cls: 'bg-purple-50 text-purple-700' },
                   ].map(({ icon: Icon, text, cls }) => (
                     <span key={text} className={`inline-flex items-center space-x-1.5 text-sm font-medium px-3.5 py-1.5 rounded-full ${cls}`}>
                       <Icon className="w-3.5 h-3.5" />
@@ -177,15 +137,15 @@ if (loading || !safeJob) {
                 <div className="flex flex-wrap gap-5 text-sm text-muted-foreground pt-4 border-t border-border/60">
                   <span className="flex items-center space-x-1.5">
                     <Clock className="w-4 h-4" />
-                    <span>Posted {safeJob.posted}</span>
+                    <span>Posted {job.posted}</span>
                   </span>
                   <span className="flex items-center space-x-1.5">
                     <Users className="w-4 h-4" />
-                    <span>{safeJob.applicants} applicants</span>
+                    <span>{job.applicants} applicants</span>
                   </span>
                   <span className="flex items-center space-x-1.5">
                     <Clock className="w-4 h-4 text-red-400" />
-                    <span className="text-red-500 font-medium">Deadline: {safeJob.deadline}</span>
+                    <span className="text-red-500 font-medium">Deadline: {job.deadline}</span>
                   </span>
                 </div>
               </div>
@@ -224,11 +184,11 @@ if (loading || !safeJob) {
                 {activeTab === 'Overview' && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
                     <h2 className="text-xl font-bold text-foreground mb-4"></h2>
-                    <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{safeJob.description}</p>
+                    <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{job.description}</p>
 
                     <h2 className="text-xl font-bold text-foreground mt-8 mb-4">Required Skills </h2>
                     <div className="flex flex-wrap gap-2">
-                      {safeJob.skills.map(skill => (
+                      {job.skills.map(skill => (
                         <span key={skill} className="bg-primary/8 text-primary px-4 py-2 rounded-xl font-semibold text-sm border border-primary/15 hover:bg-primary/15 transition-colors cursor-default">
                           {skill}
                         </span>
@@ -241,26 +201,14 @@ if (loading || !safeJob) {
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
                     <h2 className="text-xl font-bold text-foreground mb-5">Key Responsibilities</h2>
                     <ul className="space-y-3.5">
-                      {/* {safeJob.responsibilities.map((item, i) => (
+                      {job.responsibilities.map((item, i) => (
                         <li key={i} className="flex items-start space-x-3">
                           <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                             <CheckCircle className="w-3 h-3 text-primary" />
                           </div>
                           <span className="text-muted-foreground text-sm leading-relaxed">{item}</span>
                         </li>
-                      ))} */}
-
-                      {
-
-                        safeJob?.responsibilities?.split('\n').map((item, i) => (
-  <li key={i} className="flex items-start space-x-3">
-    <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-      <CheckCircle className="w-3 h-3 text-primary" />
-    </div>
-    <span className="text-muted-foreground text-sm leading-relaxed">{item}</span>
-  </li>
-))
-                      }
+                      ))}
                     </ul>
                   </motion.div>
                 )}
@@ -269,25 +217,14 @@ if (loading || !safeJob) {
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
                     <h2 className="text-xl font-bold text-foreground mb-5">Requirements & Qualifications</h2>
                     <ul className="space-y-3.5">
-                      {/* {safeJob.requirements.map((item, i) => (
+                      {job.requirements.map((item, i) => (
                         <li key={i} className="flex items-start space-x-3">
                           <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                             <CheckCircle className="w-3 h-3 text-emerald-600" />
                           </div>
                           <span className="text-muted-foreground text-sm leading-relaxed">{item}</span>
                         </li>
-                      ))} */}
-
-                      {
-                        safeJob?.requirements?.split('\n').map((item, i) => (
-  <li key={i} className="flex items-start space-x-3">
-    <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-      <CheckCircle className="w-3 h-3 text-emerald-600" />
-    </div>
-    <span className="text-muted-foreground text-sm leading-relaxed">{item}</span>
-  </li>
-))
-                      }
+                      ))}
                     </ul>
                   </motion.div>
                 )}
@@ -296,7 +233,7 @@ if (loading || !safeJob) {
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
                     <h2 className="text-xl font-bold text-foreground mb-5">Benefits & Perks</h2>
                     <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {safeJob.benefits.map((benefit, i) => (
+                      {job.benefits.map((benefit, i) => (
                         <li key={i} className="flex items-start space-x-3 bg-background rounded-xl p-3.5 border border-border/60">
                           <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                             <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
@@ -344,29 +281,29 @@ if (loading || !safeJob) {
                   saved ? 'bg-primary/8 text-primary border-primary/20' : 'border-border text-foreground hover:bg-muted/50'
                 }`}
               >
-                {saved ? '✓ Saved' : 'Save safeJob'}
+                {saved ? '✓ Saved' : 'Save Job'}
               </button>
 
               <div className="mt-5 pt-5 border-t border-border/60 space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Salary</span>
-                  <span className="font-semibold text-emerald-600">{safeJob.salary}</span>
+                  <span className="font-semibold text-emerald-600">{job.salary}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">safeJob Type</span>
-                  <span className="font-medium">{safeJob.type}</span>
+                  <span className="text-muted-foreground">Job Type</span>
+                  <span className="font-medium">{job.type}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Experience</span>
-                  <span className="font-medium">{safeJob.experience}</span>
+                  <span className="font-medium">{job.experience}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Applicants</span>
-                  <span className="font-medium">{safeJob.applicants}</span>
+                  <span className="font-medium">{job.applicants}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Deadline</span>
-                  <span className="font-medium text-red-500">{safeJob.deadline}</span>
+                  <span className="font-medium text-red-500">{job.deadline}</span>
                 </div>
               </div>
 
@@ -386,26 +323,26 @@ if (loading || !safeJob) {
               <h3 className="text-lg font-bold text-foreground mb-4">About the Company</h3>
               <div className="flex items-center space-x-3 mb-4">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-2xl">
-                  {safeJob.logo}
+                  {job.logo}
                 </div>
                 <div>
-                  <h4 className="font-bold text-foreground">{safeJob?.company?.company_name}</h4>
+                  <h4 className="font-bold text-foreground">{job.companyInfo.name}</h4>
                   <div className="flex items-center space-x-1">
                     <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                    <span className="text-sm font-medium text-foreground">{safeJob?.companyInfo?.rating|| 4}</span>
+                    <span className="text-sm font-medium text-foreground">{job.companyInfo.rating}</span>
                     <span className="text-xs text-muted-foreground">· Glassdoor</span>
                   </div>
                 </div>
               </div>
 
-              <p className="text-sm text-muted-foreground leading-relaxed mb-5">company info goes here</p>
+              <p className="text-sm text-muted-foreground leading-relaxed mb-5">{job.companyInfo.description}</p>
 
               <div className="grid grid-cols-2 gap-3 mb-4">
                 {[
-                  { icon: Building2, label: 'Industry', value: safeJob?.companyInfo?.industry || 'N/A' },
-                  { icon: Users, label: 'Employees', value: safeJob?.companyInfo?.employees || 'N/A' },
-                  { icon: Clock, label: 'Founded', value: safeJob?.companyInfo?.founded || 'N/A' },
-                  { icon: Globe, label: 'Website', value: safeJob?.companyInfo?.website || 'N/A' },
+                  { icon: Building2, label: 'Industry', value: job.companyInfo.industry },
+                  { icon: Users, label: 'Employees', value: job.companyInfo.employees },
+                  { icon: Clock, label: 'Founded', value: job.companyInfo.founded },
+                  { icon: Globe, label: 'Website', value: job.companyInfo.website },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="bg-background rounded-xl p-3 border border-border/60">
                     <div className="flex items-center space-x-1.5 mb-1">
@@ -416,7 +353,7 @@ if (loading || !safeJob) {
                   </div>
                 ))}
               </div>
-              <Link to={`/companies/${safeJob.company}`} className="block text-center text-primary hover:text-primary/80 font-semibold text-sm transition-colors hover:underline">
+              <Link to={`/companies/${job.company}`} className="block text-center text-primary hover:text-primary/80 font-semibold text-sm transition-colors hover:underline">
                 View Company Profile →
               </Link>
               {/* Social Media Icons */}
@@ -433,28 +370,28 @@ if (loading || !safeJob) {
               </div>
             </motion.div>
 
-            {/* Related safeJob */}
+            {/* Related job */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
               className="bg-white rounded-2xl border border-border/60 p-6 shadow-sm"
             >
-              <h3 className="text-lg font-bold text-foreground mb-4">Similar safeJob</h3>
+              <h3 className="text-lg font-bold text-foreground mb-4">Similar job</h3>
               <div className="space-y-3">
-                {relatedsafeJob.map(safeJob => (
+                {relatedjob.map(job => (
                   <Link
-                    key={safeJob.id}
-                    to={`/safeJob/${safeJob.id}`}
+                    key={job.id}
+                    to={`/job/${job.id}`}
                     className="block p-3.5 bg-background rounded-xl border border-border/60 hover:border-primary/30 hover:shadow-md transition-all group"
                   >
-                    <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors text-sm mb-1">{safeJob.title}</h4>
-                    <p className="text-xs text-muted-foreground mb-2">{safeJob.company}</p>
+                    <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors text-sm mb-1">{job.title}</h4>
+                    <p className="text-xs text-muted-foreground mb-2">{job.company}</p>
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground flex items-center space-x-1">
-                        <MapPin className="w-3 h-3" /> <span>{safeJob.location}</span>
+                        <MapPin className="w-3 h-3" /> <span>{job.location}</span>
                       </span>
-                      <span className="text-xs text-emerald-600 font-semibold">{safeJob.salary}</span>
+                      <span className="text-xs text-emerald-600 font-semibold">{job.salary}</span>
                     </div>
                   </Link>
                 ))}

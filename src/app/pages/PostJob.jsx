@@ -12,7 +12,9 @@ import "react-quill/dist/quill.snow.css";
 const steps = ['Job Details', 'Requirements', 'Preview & Post'];
 
 const jobTypes = ['Full-time', 'Part-time', 'Contract', 'Temporary', 'Internship'];
-const experienceLevels = ['Entry Level (0–2 yrs)', 'Mid Level (2–5 yrs)', 'Senior (5+ yrs)', 'Executive (10+ yrs)'];
+
+
+const experienceLevels = ['Entry Level (0–2 yrs)', 'Mid Level (2–5 yrs)', 'Senior (5–10 yrs)', 'Expert (10+ yrs)'];
 const categories = ['Engineering', 'Safety & HSE', 'Operations', 'Management', 'Technical Support', 'Logistics'];
 
 

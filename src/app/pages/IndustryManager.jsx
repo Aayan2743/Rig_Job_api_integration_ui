@@ -8,7 +8,12 @@ export default function IndustryManager({ setIndustryCount }) {
 
   const [showDrawer, setShowDrawer] = useState(false);
   const [editItem, setEditItem] = useState(null);
-  const [form, setForm] = useState({ name: '' });
+ const [form, setForm] = useState({
+  name: '',
+  image: null
+});
+
+const [preview, setPreview] = useState(null);
 
   // ✅ Fetch Industries
   const fetchIndustries = async (page = 1) => {
@@ -33,17 +38,23 @@ export default function IndustryManager({ setIndustryCount }) {
   // ✅ Drawer controls
   const openDrawer = (item = null) => {
     setEditItem(item);
-    setForm({ name: item?.name || '' });
+   setForm({
+  name: item?.name || '',
+  image: null
+});
+
+setPreview(item?.image || null);
     setShowDrawer(true);
   };
 
   const closeDrawer = () => {
     setShowDrawer(false);
     setEditItem(null);
+     setPreview(null);
   };
 
   // ✅ Save (Add / Edit)
-  const handleSave = async () => {
+  const handleSavessss = async () => {
     try {
       if (!form.name.trim()) return alert('Industry name required');
 
@@ -60,6 +71,35 @@ export default function IndustryManager({ setIndustryCount }) {
       console.error(err);
     }
   };
+
+  const handleSave = async () => {
+  try {
+    if (!form.name.trim()) return alert('Industry name required');
+
+    const formData = new FormData();
+    formData.append("name", form.name);
+
+    if (form.image) {
+      formData.append("image", form.image); // ✅ important
+    }
+
+    if (editItem) {
+      await api.post(`/admin/industries/${editItem.id}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+    } else {
+      await api.post(`/admin/industries`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+    }
+
+    fetchIndustries();
+    closeDrawer();
+
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   // ✅ Delete
   const handleDelete = async (id) => {
@@ -86,7 +126,7 @@ export default function IndustryManager({ setIndustryCount }) {
           className="px-4 py-2 rounded-lg text-sm font-semibold text-white"
           style={{ background: 'linear-gradient(135deg, #0891B2, #0E7490)' }}
         >
-          + Add Industry
+          + Add Industry 
         </button>
       </div>
 
@@ -111,7 +151,16 @@ export default function IndustryManager({ setIndustryCount }) {
                 key={item.id}
                 className="flex justify-between items-center px-4 py-3 hover:bg-muted/10"
               >
-                <p className="text-sm font-medium">{item.name}</p>
+               <div className="flex items-center gap-3">
+  {item.image && (
+    <img
+      src={item.image}
+      alt='Images'
+      className="w-10 h-10 rounded object-cover"
+    />
+  )}
+  <p className="text-sm font-medium">{item.name}</p>
+</div>
 
                 <div className="flex gap-3">
                   <button
@@ -168,6 +217,29 @@ export default function IndustryManager({ setIndustryCount }) {
               placeholder="Enter industry name"
               className="w-full px-4 py-2 border rounded-lg mb-4"
             />
+
+            <input
+  type="file"
+  accept="image/*"
+  onChange={(e) => {
+    const file = e.target.files[0];
+
+    setForm({ ...form, image: file });
+
+    if (file) {
+      setPreview(URL.createObjectURL(file));
+    }
+  }}
+  className="w-full mb-3"
+/>
+
+
+{preview && (
+  <img
+    src={preview}
+    className="w-16 h-16 rounded object-cover mb-3 border"
+  />
+)}
 
             <div className="flex gap-2">
               <button
