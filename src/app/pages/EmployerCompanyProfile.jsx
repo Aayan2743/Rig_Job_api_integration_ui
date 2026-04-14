@@ -47,7 +47,14 @@ export function EmployerCompanyProfile() {
 
   culture_values: [],
   benefits_perks: [],
-  social_links: [],
+ 
+
+
+  logo: null,
+  linkedin: "",
+  twitter: "",
+  facebook: "",
+  youtube: "",
 });
 
   const onChange = (e) => {
@@ -89,7 +96,15 @@ useEffect(() => {
 
         culture_values: Array.isArray(c.culture_values) ? c.culture_values : [],
   benefits_perks: Array.isArray(c.benefits_perks) ? c.benefits_perks : [],
-  social_links: Array.isArray(c.social_links) ? c.social_links : [],
+
+   linkedin: c.linkedin || "",
+  twitter: c.twitter || "",
+  facebook: c.facebook || "",
+  youtube: c.youtube || "",
+   logo: null,                // for upload
+  logo_preview: c.logo || "" // for display
+   
+
       });
     })
     .catch(err => {
@@ -101,6 +116,8 @@ useEffect(() => {
 const handleUpdate = async () => {
   try {
     setSaving(true);
+
+
 
     showLoading("Updating...");
 
@@ -133,15 +150,38 @@ const handleUpdate = async () => {
       formData.append(`benefits_perks[${i}]`, v);
     });
 
-    (form.social_links || []).forEach((v, i) => {
-      formData.append(`social_links[${i}]`, v);
-    });
+if (form.logo && form.logo instanceof File) {
+  formData.append("logo", form.logo);
+}
+
+// ✅ SOCIAL LINKS
+formData.append("linkedin", form.linkedin || "");
+formData.append("twitter", form.twitter || "");
+formData.append("facebook", form.facebook || "");
+formData.append("youtube", form.youtube || "");
+
+
+
+console.log("LOGO TYPE:", formData);
+
+
 
     // ✅ API call
+    // const res = await api.post(
+    //   `/employeer/update-company`, // ⚠️ replace with your company id
+    //   formData
+    // );
+
+
     const res = await api.post(
-      `/employeer/update-company`, // ⚠️ replace with your company id
-      formData
-    );
+  `/employeer/update-company`,
+  formData,
+  {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  }
+);
 
      closeAlert();
 
@@ -189,6 +229,75 @@ const handleUpdate = async () => {
             className="lg:col-span-2 bg-white rounded-2xl border border-border/60 shadow-sm p-6"
           >
             <h2 className="text-lg font-bold text-foreground mb-5">Public Details</h2>
+
+
+            <div className="sm:col-span-2">
+  <label className="block text-sm font-semibold mb-2">Company Logo</label>
+
+  <div className="flex items-center gap-4">
+
+    {/* PREVIEW BOX */}
+    <div className="w-20 h-20 rounded-xl border border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50">
+      {/* {form.logo ? (
+        <img
+         src={
+    form.logo
+      ? URL.createObjectURL(form.logo) // new upload
+      : form.logo_preview             // existing image
+  }
+          alt="Preview"
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <span className="text-xs text-gray-400">No Image</span>
+      )} */}
+
+
+
+
+      {form.logo || form.logo_preview ? (
+  <img
+    src={
+      form.logo
+        ? URL.createObjectURL(form.logo)
+        : form.logo_preview
+    }
+    alt="Preview"
+    className="w-full h-full object-cover"
+  />
+) : (
+  <span className="text-xs text-gray-400">No Image</span>
+)}
+    </div>
+
+    {/* INPUT */}
+    <div className="flex-1">
+      <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg shadow hover:bg-primary/90 transition">
+        Upload Logo
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+
+            if (file && file.type.startsWith("image/")) {
+              setForm(prev => ({
+                ...prev,
+                logo: file
+              }));
+            }
+          }}
+        />
+      </label>
+
+      <p className="text-xs text-gray-500 mt-2">
+        JPG, PNG, WEBP (Max 2MB)
+      </p>
+    </div>
+
+  </div>
+</div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="sm:col-span-2">
@@ -400,45 +509,38 @@ const handleUpdate = async () => {
 
 
 <div>
-  <label className="block text-sm font-semibold mb-2">Social Links</label>
+  <label className="block text-sm font-semibold mb-2">LinkedIn</label>
+  <input
+    name="linkedin"
+    value={form.linkedin}
+    onChange={onChange}
+    className="w-full px-3 py-2 border rounded-xl mb-2"
+  />
 
-  {form.social_links.map((link, i) => (
-    <div key={i} className="flex gap-2 mb-2">
-      <input
-        value={link}
-        onChange={(e) => {
-          const updated = [...form.social_links];
-          updated[i] = e.target.value;
-          setForm(prev => ({ ...prev, social_links: updated }));
-        }}
-        className="flex-1 px-3 py-2 border rounded-xl"
-      />
-      <button
-        onClick={() =>
-          setForm(prev => ({
-            ...prev,
-            social_links: prev.social_links.filter((_, idx) => idx !== i)
-          }))
-        }
-      >
-        <X className="w-4" />
-      </button>
-    </div>
-  ))}
+  <label className="block text-sm font-semibold mb-2">Twitter</label>
+  <input
+    name="twitter"
+    value={form.twitter}
+    onChange={onChange}
+    className="w-full px-3 py-2 border rounded-xl mb-2"
+  />
 
-  <button
-    onClick={() =>
-      setForm(prev => ({
-        ...prev,
-        social_links: [...prev.social_links, ""]
-      }))
-    }
-    className="text-sm text-blue-600"
-  >
-    + Add Link
-  </button>
+  <label className="block text-sm font-semibold mb-2">Facebook</label>
+  <input
+    name="facebook"
+    value={form.facebook}
+    onChange={onChange}
+    className="w-full px-3 py-2 border rounded-xl mb-2"
+  />
+
+  <label className="block text-sm font-semibold mb-2">YouTube</label>
+  <input
+    name="youtube"
+    value={form.youtube}
+    onChange={onChange}
+    className="w-full px-3 py-2 border rounded-xl"
+  />
 </div>
-
 
 
               <div className="sm:col-span-2">

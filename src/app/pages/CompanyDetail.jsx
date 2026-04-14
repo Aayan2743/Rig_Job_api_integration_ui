@@ -2,35 +2,11 @@ import { useParams, Link } from 'react-router-dom';
 import { MapPin, Users, Globe, Briefcase, Star, Calendar, ChevronRight, DollarSign, Clock, Building2, Award, TrendingUp, CheckCircle, ArrowLeft } from 'lucide-react';
 import { motion } from 'motion/react';
 
-const companiesData = {
-  'shell-energy': {
-    id: 1, name: 'Shell Energy', slug: 'shell-energy', logo: '🛢️', industry: 'Upstream O&G', location: 'Houston, TX',
-    employees: '82,000+', openJobs: 45, rating: 4.4, reviews: 12340, founded: 1907, website: 'shell.com',
-    verified: true, tags: ['Deepwater', 'LNG', 'Renewables'],
-    description: 'One of the world\'s largest energy companies',
-    longDesc: 'Shell is a global group of energy and petrochemicals companies, employing more than 82,000 people and with operations in more than 70 countries. Shell uses advanced technology and takes an innovative approach to finding new ways to provide more and cleaner energy. Shell\'s upstream operations include exploration, production, and transportation of oil and natural gas. Downstream operations cover refining, supply, trading, and marketing of oil products and chemicals.',
-    benefits: ['Competitive salary + annual bonuses', 'Medical, dental & vision insurance', '25 days PTO + public holidays', '401(k) with 6% match', 'Professional development funding', 'Flexible working arrangements', 'Global mobility opportunities', 'Wellbeing & lifestyle allowance'],
-    culture: ['Innovation-driven', 'Diverse & inclusive', 'Safety-first culture', 'Global mindset', 'Career development focused'],
-  },
-  'bp-operations': {
-    id: 2, name: 'BP Operations', slug: 'bp-operations', logo: '⚡', industry: 'Integrated O&G', location: 'London, UK',
-    employees: '70,000+', openJobs: 38, rating: 4.2, reviews: 9870, founded: 1909, website: 'bp.com',
-    verified: true, tags: ['Offshore', 'Refining', 'Solar'],
-    description: 'Global energy company with ambitious net-zero goals',
-    longDesc: 'BP is a British multinational oil and gas company headquartered in London, England. It is one of the world\'s seven oil and gas "supermajors". BP\'s integrated model spans upstream oil and gas production, natural gas trading and marketing, downstream refining and marketing, and alternative energy investment in solar, wind, and hydrogen.',
-    benefits: ['Market-leading base salary', 'Annual performance bonus', 'Private medical insurance', 'Pension with up to 9% employer contribution', '30 days annual leave', 'Share purchase plan', 'EV car scheme', 'Career development programs'],
-    culture: ['Performance oriented', 'Global opportunities', 'Sustainability focus', 'Collaborative teams', 'Technical excellence'],
-  },
-  'chevron': {
-    id: 3, name: 'Chevron', slug: 'chevron', logo: '🌊', industry: 'Upstream O&G', location: 'San Ramon, CA',
-    employees: '43,000+', openJobs: 52, rating: 4.5, reviews: 8560, founded: 1879, website: 'chevron.com',
-    verified: true, tags: ['Gulf of Mexico', 'International', 'LNG'],
-    description: 'Leading integrated energy company since 1879',
-    longDesc: 'Chevron is one of the world\'s leading integrated energy companies. Through its subsidiaries, Chevron engages in every aspect of the crude oil and natural gas industry including exploration and production; refining, marketing and transportation; chemicals manufacturing and sales; and power generation.',
-    benefits: ['Highly competitive compensation', 'Comprehensive medical benefits', 'Retirement savings plan', 'Educational assistance', 'Employee stock plan', 'Fitness and wellness programs', 'Adoption assistance', 'International assignments'],
-    culture: ['Safety first', 'Environmental stewardship', 'High performance', 'Integrity-driven', 'Diverse workforce'],
-  },
-};
+import { useEffect, useState } from 'react';
+import api from '../../utils/api';
+// import api from '../api';
+
+
 
 // Fallback data for companies not in our map
 const defaultCompany = {
@@ -43,19 +19,66 @@ const defaultCompany = {
   culture: ['Safety-first', 'Innovation', 'Teamwork'],
 };
 
-const jobsByCompany = {
-  'shell-energy': [
-    { id: 1, title: 'Senior Drilling Engineer', location: 'Houston, TX', type: 'Full-time', salary: '$120k–$180k', posted: '2 days ago' },
-    { id: 2, title: 'HSE Manager', location: 'Houston, TX', type: 'Full-time', salary: '$100k–$140k', posted: '5 days ago' },
-    { id: 3, title: 'Well Engineer', location: 'Aberdeen, UK', type: 'Full-time', salary: '$95k–$130k', posted: '1 week ago' },
-    { id: 4, title: 'Field Operations Supervisor', location: 'Gulf of Mexico', type: 'Contract', salary: '$130k–$170k', posted: '3 days ago' },
-  ],
-};
 
 export function CompanyDetail() {
   const { slug } = useParams();
-  const company = (slug && companiesData[slug]) || { ...defaultCompany, name: slug?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Company' };
-  const jobs = (slug && jobsByCompany[slug]) || jobsByCompany['shell-energy'];
+  // const company = (slug && companiesData[slug]) || { ...defaultCompany, name: slug?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Company' };
+  // const jobs = (slug && jobsByCompany[slug]) || jobsByCompany['shell-energy'];
+
+  const [company, setCompany] = useState(null);
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+
+
+  useEffect(() => {
+  if (!slug) return;
+
+  setLoading(true);
+
+  api.get(`/companies/${slug}`)
+    .then(res => {
+      const c = res.data.data;
+
+      setCompany({
+        id: c.id,
+        name: c.company_name,
+        slug: c.slug,
+        logo: c.logo, // ✅ URL
+        industry: c.industry,
+        location: c.headquarters,
+        employees: c.company_size,
+        openJobs: c.jobs_count,
+        founded: c.founded,
+        website: c.website,
+        verified: true,
+
+        description: c.message,
+        longDesc: c.message,
+
+        benefits: c.benefits_perks || [],
+        culture: c.culture_values || [],
+
+        linkedin: c.linkedin,
+        twitter: c.twitter,
+        facebook: c.facebook,
+        youtube: c.youtube,
+         tags: [],
+      });
+
+      setJobs(c.jobs || []);
+    })
+    .catch(err => {
+      console.error(err);
+    })
+    .finally(() => setLoading(false));
+
+}, [slug]);
+
+if (loading || !company) {
+  return <div className="p-10 text-center">Loading...</div>;
+}
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -79,7 +102,15 @@ export function CompanyDetail() {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
             <div className="flex items-start space-x-5">
               <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-4xl shadow-md flex-shrink-0">
-                {company.logo}
+               
+               {company.logo ? (
+            <img
+              src={company.logo}
+              className="w-full h-full object-cover rounded-2xl"
+            />
+          ) : (
+            '🏢'
+          )}
               </div>
               <div>
                 <div className="flex items-center space-x-2 mb-1">
@@ -108,15 +139,32 @@ export function CompanyDetail() {
                     <a href={`https://${company.website}`} target="_blank" rel="noopener" className="text-primary hover:underline">{company.website}</a>
                     {/* Social Media Icons */}
                     <span className="flex items-center gap-2 ml-2">
-                      <a href="https://www.linkedin.com/company/shell" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="text-blue-700 hover:text-blue-900">
+                      {company.linkedin && (
+                          <a href={company.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="text-blue-700 hover:text-blue-900">
                         <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-10h3v10zm-1.5-11.268c-.966 0-1.75-.784-1.75-1.75s.784-1.75 1.75-1.75 1.75.784 1.75 1.75-.784 1.75-1.75 1.75zm13.5 11.268h-3v-5.604c0-1.337-.025-3.063-1.868-3.063-1.868 0-2.154 1.459-2.154 2.968v5.699h-3v-10h2.881v1.367h.041c.401-.761 1.379-1.563 2.838-1.563 3.034 0 3.595 1.997 3.595 4.59v5.606z"/></svg>
                       </a>
-                      <a href="https://twitter.com/shell" target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="text-sky-500 hover:text-sky-700">
+                      )}
+                      
+                       {company.twitter  && (
+                           <a href={company.twitter} target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="text-sky-500 hover:text-sky-700">
                         <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557a9.93 9.93 0 0 1-2.828.775 4.932 4.932 0 0 0 2.165-2.724c-.951.564-2.005.974-3.127 1.195a4.92 4.92 0 0 0-8.384 4.482c-4.086-.205-7.713-2.164-10.141-5.144a4.822 4.822 0 0 0-.664 2.475c0 1.708.87 3.216 2.188 4.099a4.904 4.904 0 0 1-2.229-.616c-.054 2.281 1.581 4.415 3.949 4.89a4.936 4.936 0 0 1-2.224.084c.627 1.956 2.444 3.377 4.6 3.417a9.867 9.867 0 0 1-6.102 2.104c-.396 0-.787-.023-1.175-.069a13.945 13.945 0 0 0 7.548 2.212c9.057 0 14.009-7.513 14.009-14.009 0-.213-.005-.425-.014-.636a10.012 10.012 0 0 0 2.457-2.548z"/></svg>
                       </a>
-                      <a href="https://facebook.com/shell" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="text-blue-600 hover:text-blue-800">
+
+                       )}
+                      {company.facebook  && (
+                      <a href={company.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="text-blue-600 hover:text-blue-800">
                         <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M22.675 0h-21.35c-.733 0-1.325.592-1.325 1.326v21.348c0 .733.592 1.326 1.325 1.326h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.797.143v3.24l-1.918.001c-1.504 0-1.797.715-1.797 1.763v2.312h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.326v-21.349c0-.734-.593-1.326-1.324-1.326z"/></svg>
                       </a>
+                      )}
+
+
+                       {company.youtube   && (
+                      <a href={company.youtube} target="_blank" rel="noopener noreferrer" aria-label="YouTube" className="text-red-600 hover:text-red-800">
+                        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M22.675 0h-21.35c-.733 0-1.325.592-1.325 1.326v21.348c0 .733.592 1.326 1.325 1.326h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.797.143v3.24l-1.918.001c-1.504 0-1.797.715-1.797 1.763v2.312h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.326v-21.349c0-.734-.593-1.326-1.324-1.326z"/></svg>
+                      </a>
+                      )}
+
+
                     </span>
                   </span>
                 </div>
@@ -200,7 +248,7 @@ export function CompanyDetail() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-3 flex-shrink-0">
-                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">{job.type}</span>
+                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">{job.job_type}</span>
                         <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                       </div>
                     </Link>
@@ -208,8 +256,8 @@ export function CompanyDetail() {
                 ))}
               </div>
               <div className="p-5 border-t border-border/60">
-                <Link to={`/jobs?company=${company.name}`} className="text-primary hover:underline font-semibold text-sm">
-                  View all {company.openJobs} positions →
+                <Link to={`/jobs?company=${company.slug}`} className="text-primary hover:underline font-semibold text-sm">
+                  View all {company.slug} positions →
                 </Link>
               </div>
             </motion.div>
@@ -242,28 +290,7 @@ export function CompanyDetail() {
               </div>
             </motion.div>
 
-            {/* Rating Breakdown */}
-            {/* <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="bg-white rounded-2xl border border-border/60 p-5 shadow-sm">
-              <h3 className="text-lg font-bold text-foreground mb-4">Employee Ratings</h3>
-              {[
-                { label: 'Work-Life Balance', score: 4.2 },
-                { label: 'Compensation', score: 4.5 },
-                { label: 'Career Growth', score: 4.1 },
-                { label: 'Management', score: 3.9 },
-                { label: 'Culture', score: 4.4 },
-              ].map(r => (
-                <div key={r.label} className="mb-3 last:mb-0">
-                  <div className="flex justify-between mb-1">
-                    <span className="text-xs text-muted-foreground">{r.label}</span>
-                    <span className="text-xs font-bold text-foreground">{r.score}</span>
-                  </div>
-                  <div className="h-1.5 bg-muted/40 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} whileInView={{ width: `${(r.score / 5) * 100}%` }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.1 }}
-                      className="h-full rounded-full" style={{ background: 'var(--gradient-primary)' }} />
-                  </div>
-                </div>
-              ))}
-            </motion.div> */}
+           
 
             {/* CTA */}
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}
