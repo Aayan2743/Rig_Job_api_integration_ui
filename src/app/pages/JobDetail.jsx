@@ -7,11 +7,11 @@ import { useEffect, useState } from "react";
 import api from "../../utils/api.js";
 
 
-const relatedsafeJob = [
-  { id: 2, title: 'Drilling Supervisor', company: 'Shell Energy', location: 'Aberdeen, UK', salary: '$100k–$140k', type: 'Full-time' },
-  { id: 3, title: 'Completion Engineer', company: 'Shell Energy', location: 'Houston, TX', salary: '$110k–$160k', type: 'Full-time' },
-  { id: 4, title: 'Well Engineer', company: 'BP Operations', location: 'Gulf of Mexico', salary: '$105k–$155k', type: 'Contract' },
-];
+// const relatedsafeJob = [
+//   { id: 2, title: 'Drilling Supervisor', company: 'Shell Energy', location: 'Aberdeen, UK', salary: '$100k–$140k', type: 'Full-time' },
+//   { id: 3, title: 'Completion Engineer', company: 'Shell Energy', location: 'Houston, TX', salary: '$110k–$160k', type: 'Full-time' },
+//   { id: 4, title: 'Well Engineer', company: 'BP Operations', location: 'Gulf of Mexico', salary: '$105k–$155k', type: 'Contract' },
+// ];
 
 const tabs = ['Overview', 'Responsibilities', 'Requirements', 'Benefits'];
 
@@ -20,6 +20,7 @@ export  function JobDetail() {
   const { id } = useParams();
 
 const [safeJob, setsafeJob] = useState(null);
+const [relatedsafeJob, setRelatedsafeJob] = useState([]);
 const [loading, setLoading] = useState(false);
 
 
@@ -40,9 +41,10 @@ const fetchsafeJob = async () => {
 
     const res = await api.get(`/companies/jobs/${id}`);
 
-    console.log('safeJob details response:', res.data); // Debug log
+    console.log('safeJob details response:', res.data.data.similar_jobs); // Debug log
     if (res.data.success) {
       setsafeJob(res.data.data);
+      setRelatedsafeJob(res.data.data.similar_jobs || []); // Assuming related jobs are returned in this field
     }
 
   } catch (err) {
@@ -50,6 +52,41 @@ const fetchsafeJob = async () => {
   } finally {
     setLoading(false);
   }
+};
+
+
+const getPostedTime = (date) => {
+  const now = new Date();
+  const postedDate = new Date(date);
+  const diffTime = Math.abs(now - postedDate);
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "1 day ago";
+  return `${diffDays} days ago`;
+};
+
+const formatDeadline = (date) => {
+  const deadline = new Date(date);
+  const now = new Date();
+
+  if (deadline < now) return "Expired";
+
+  return deadline.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
+
+
+const getDaysLeft = (date) => {
+  const deadline = new Date(date);
+  const now = new Date();
+  const diff = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
+
+  if (diff <= 0) return "Expired";
+  return `${diff} days left`;
 };
 
 
@@ -162,9 +199,9 @@ if (loading || !safeJob) {
                 <div className="flex flex-wrap gap-2 mb-5">
                   {[
                     { icon: MapPin, text: safeJob.location, cls: 'bg-blue-50 text-blue-700' },
-                    { icon: Briefcase, text: safeJob.type, cls: 'bg-emerald-50 text-emerald-700' },
-                    { icon: DollarSign, text: safeJob.salary, cls: 'bg-amber-50 text-amber-700' },
-                    { icon: Award, text: safeJob.experience, cls: 'bg-purple-50 text-purple-700' },
+                    { icon: Briefcase, text: safeJob.job_type, cls: 'bg-emerald-50 text-emerald-700' },
+                    { icon: DollarSign, text: `${safeJob.salary_min} - ${safeJob.salary_max}`, cls: 'bg-amber-50 text-amber-700' },
+                    { icon: Award, text: safeJob.experience_level, cls: 'bg-purple-50 text-purple-700' },
                   ].map(({ icon: Icon, text, cls }) => (
                     <span key={text} className={`inline-flex items-center space-x-1.5 text-sm font-medium px-3.5 py-1.5 rounded-full ${cls}`}>
                       <Icon className="w-3.5 h-3.5" />
@@ -177,7 +214,8 @@ if (loading || !safeJob) {
                 <div className="flex flex-wrap gap-5 text-sm text-muted-foreground pt-4 border-t border-border/60">
                   <span className="flex items-center space-x-1.5">
                     <Clock className="w-4 h-4" />
-                    <span>Posted {safeJob.posted}</span>
+                    <span> Posted {getPostedTime(safeJob.created_at)}</span>
+                    
                   </span>
                   <span className="flex items-center space-x-1.5">
                     <Users className="w-4 h-4" />
@@ -185,7 +223,7 @@ if (loading || !safeJob) {
                   </span>
                   <span className="flex items-center space-x-1.5">
                     <Clock className="w-4 h-4 text-red-400" />
-                    <span className="text-red-500 font-medium">Deadline: {safeJob.deadline}</span>
+                    <span className="text-red-500 font-medium">Deadline:  {formatDeadline(safeJob.dead_line)} ({getDaysLeft(safeJob.dead_line)}) </span>
                   </span>
                 </div>
               </div>
@@ -237,56 +275,46 @@ if (loading || !safeJob) {
                   </motion.div>
                 )}
 
-                {activeTab === 'Responsibilities' && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-                    <h2 className="text-xl font-bold text-foreground mb-5">Key Responsibilities</h2>
-                    <ul className="space-y-3.5">
-                      {/* {safeJob.responsibilities.map((item, i) => (
-                        <li key={i} className="flex items-start space-x-3">
-                          <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <CheckCircle className="w-3 h-3 text-primary" />
-                          </div>
-                          <span className="text-muted-foreground text-sm leading-relaxed">{item}</span>
-                        </li>
-                      ))} */}
+              {activeTab === 'Responsibilities' && (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ duration: 0.3 }}
+  >
+    <h2 className="text-xl font-bold text-foreground mb-5">
+      Key Responsibilities
+    </h2>
 
-                      {
-
-                        safeJob?.responsibilities?.split('\n').map((item, i) => (
-  <li key={i} className="flex items-start space-x-3">
-    <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-      <CheckCircle className="w-3 h-3 text-primary" />
-    </div>
-    <span className="text-muted-foreground text-sm leading-relaxed">{item}</span>
-  </li>
-))
-                      }
-                    </ul>
-                  </motion.div>
-                )}
+    <ul className="space-y-3.5">
+      {safeJob?.responsibilities?.split('\n')?.map((item, i) => (
+        <li key={i} className="flex items-start space-x-3">
+          <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <CheckCircle className="w-3 h-3 text-primary" />
+          </div>
+          <span className="text-muted-foreground text-sm leading-relaxed">
+            {item}
+          </span>
+        </li>
+      ))}
+    </ul>
+  </motion.div>
+)}
 
                 {activeTab === 'Requirements' && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
                     <h2 className="text-xl font-bold text-foreground mb-5">Requirements & Qualifications</h2>
                     <ul className="space-y-3.5">
-                      {/* {safeJob.requirements.map((item, i) => (
-                        <li key={i} className="flex items-start space-x-3">
-                          <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <CheckCircle className="w-3 h-3 text-emerald-600" />
-                          </div>
-                          <span className="text-muted-foreground text-sm leading-relaxed">{item}</span>
-                        </li>
-                      ))} */}
+                     
 
                       {
                         safeJob?.requirements?.split('\n').map((item, i) => (
-  <li key={i} className="flex items-start space-x-3">
-    <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-      <CheckCircle className="w-3 h-3 text-emerald-600" />
-    </div>
-    <span className="text-muted-foreground text-sm leading-relaxed">{item}</span>
-  </li>
-))
+                      <li key={i} className="flex items-start space-x-3">
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <CheckCircle className="w-3 h-3 text-emerald-600" />
+                        </div>
+                        <span className="text-muted-foreground text-sm leading-relaxed">{item}</span>
+                      </li>
+                    ))
                       }
                     </ul>
                   </motion.div>
@@ -349,16 +377,16 @@ if (loading || !safeJob) {
 
               <div className="mt-5 pt-5 border-t border-border/60 space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Salary</span>
-                  <span className="font-semibold text-emerald-600">{safeJob.salary}</span>
+                  <span className="text-muted-foreground">Salary </span>
+                  <span className="font-semibold text-emerald-600">  ${safeJob.salary_min} – ${safeJob.salary_max}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">safeJob Type</span>
-                  <span className="font-medium">{safeJob.type}</span>
+                  <span className="text-muted-foreground">Job Type</span>
+                  <span className="font-medium">{safeJob.job_type}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Experience</span>
-                  <span className="font-medium">{safeJob.experience}</span>
+                  <span className="font-medium">{safeJob.experience_level}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Applicants</span>
@@ -366,7 +394,7 @@ if (loading || !safeJob) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Deadline</span>
-                  <span className="font-medium text-red-500">{safeJob.deadline}</span>
+                  <span className="font-medium text-red-500">{formatDeadline(safeJob.dead_line)} ({getDaysLeft(safeJob.dead_line)})</span>
                 </div>
               </div>
 
@@ -402,10 +430,10 @@ if (loading || !safeJob) {
 
               <div className="grid grid-cols-2 gap-3 mb-4">
                 {[
-                  { icon: Building2, label: 'Industry', value: safeJob?.companyInfo?.industry || 'N/A' },
-                  { icon: Users, label: 'Employees', value: safeJob?.companyInfo?.employees || 'N/A' },
-                  { icon: Clock, label: 'Founded', value: safeJob?.companyInfo?.founded || 'N/A' },
-                  { icon: Globe, label: 'Website', value: safeJob?.companyInfo?.website || 'N/A' },
+                  { icon: Building2, label: 'Industry', value: safeJob?.company?.industry?.name || 'N/A' },
+                  { icon: Users, label: 'Employees', value: safeJob?.company?.company_size || 'N/A' },
+                  { icon: Clock, label: 'Founded', value: safeJob?.company?.founded || 'N/A' },
+                  { icon: Globe, label: 'Website', value: safeJob?.company?.website || 'N/A' },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="bg-background rounded-xl p-3 border border-border/60">
                     <div className="flex items-center space-x-1.5 mb-1">
@@ -442,22 +470,37 @@ if (loading || !safeJob) {
             >
               <h3 className="text-lg font-bold text-foreground mb-4">Similar safeJob</h3>
               <div className="space-y-3">
-                {relatedsafeJob.map(safeJob => (
-                  <Link
-                    key={safeJob.id}
-                    to={`/safeJob/${safeJob.id}`}
-                    className="block p-3.5 bg-background rounded-xl border border-border/60 hover:border-primary/30 hover:shadow-md transition-all group"
-                  >
-                    <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors text-sm mb-1">{safeJob.title}</h4>
-                    <p className="text-xs text-muted-foreground mb-2">{safeJob.company}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground flex items-center space-x-1">
-                        <MapPin className="w-3 h-3" /> <span>{safeJob.location}</span>
-                      </span>
-                      <span className="text-xs text-emerald-600 font-semibold">{safeJob.salary}</span>
-                    </div>
-                  </Link>
-                ))}
+             
+
+
+                {relatedsafeJob.map((job) => (
+  <Link
+    key={job.id}
+    to={`/jobs/${job.id}`}
+    className="block p-3.5 bg-background rounded-xl border border-border/60 hover:border-primary/30 hover:shadow-md transition-all group"
+  >
+    <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors text-sm mb-1">
+      {job.title}
+    </h4>
+
+    <p className="text-xs text-muted-foreground mb-2">
+      {job.company?.name || "No company"}
+    </p>
+
+    <div className="flex items-center justify-between">
+      <span className="text-xs text-muted-foreground flex items-center space-x-1">
+        <MapPin className="w-3 h-3" />
+        <span>{job.location || "N/A"}</span>
+      </span>
+
+      <span className="text-xs text-emerald-600 font-semibold">
+        {job.salary_min && job.salary_max
+          ? `₹${job.salary_min}K - ₹${job.salary_max}K`
+          : "Not disclosed"}
+      </span>
+    </div>
+  </Link>
+                  ))}
               </div>
             </motion.div>
           </div>

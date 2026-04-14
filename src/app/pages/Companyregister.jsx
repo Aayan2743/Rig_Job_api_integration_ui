@@ -90,6 +90,8 @@ export function CompanyRegister() {
 
 
   const handleSubmit = async (e) => {
+
+    alert('Note: This registration form is currently in demo mode. Submissions will not create real accounts. Please use the demo credentials provided on the next screen to log in and explore the company dashboard features.');
   e.preventDefault();
   setError('');
   setLoading(true);
