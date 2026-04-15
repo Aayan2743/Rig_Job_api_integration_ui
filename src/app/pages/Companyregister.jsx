@@ -4,6 +4,14 @@ import { useState,useEffect } from 'react';
 import { motion } from 'motion/react';
 import api from '../../utils/api.js';
 
+import {
+  showSuccess,
+  showError,
+  showConfirm,
+  showLoading,
+  closeAlert,
+} from "../../utils/alert";
+
 
 const REQUESTS_KEY = 'rwj_company_requests';
 
@@ -65,31 +73,10 @@ export function CompanyRegister() {
 
 
 
-  // const handleSubmit = (e) => {
-  //   e.preventDefault();
-  //   setError('');
-  //   setLoading(true);
-  //   try {
-  //     submitRequest({
-  //       companyName: form.companyName,
-  //       contactName: form.contactName,
-  //       email: form.email,
-  //       phone: form.phone,
-  //       industry: form.industry,
-  //       website: form.website,
-  //       message: form.message,
-  //       password: form.password,
-  //     });
-  //     setSubmitted(true);
-  //   } catch (err) {
-  //     setError(err.message || 'Submission failed. Please try again.');
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+ 
 
 
-  const handleSubmit = async (e) => {
+  const handleSubmit_old = async (e) => {
 
     alert('Note: This registration form is currently in demo mode. Submissions will not create real accounts. Please use the demo credentials provided on the next screen to log in and explore the company dashboard features.');
   e.preventDefault();
@@ -122,6 +109,58 @@ export function CompanyRegister() {
     setLoading(false);
   }
 };
+
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  // ✅ Optional confirm
+  const confirm = await showConfirm("Submit registration request?");
+  if (!confirm) return;
+
+  setError("");
+  setLoading(true);
+
+  try {
+    showLoading("Submitting...");
+
+    const res = await api.post("/companies", {
+      company_name: form.companyName,
+      contact_person: form.contactName,
+      email: form.email,
+      password: form.password,
+      phone: form.phone,
+      website: form.website,
+      industry_id: form.industry,
+      message: form.message,
+    });
+
+    const data = res.data;
+
+    closeAlert(); // 🔥 close loading
+
+    if (data.success) {
+      showSuccess("Registration submitted successfully 🎉");
+      setSubmitted(true);
+    } else {
+      showError(data.message);
+    }
+
+  } catch (err) {
+    closeAlert(); // 🔥 always close loading
+
+    showError(
+      err.response?.data?.errors || // validation errors
+      err.response?.data?.message || // single error
+      "Something went wrong"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+
   return (
     <div className="min-h-screen flex">
       {/* Left Panel */}
@@ -202,11 +241,7 @@ export function CompanyRegister() {
                   <span>Log in at <Link to="/company/login" className="font-semibold underline">/company/login</Link> to access your dashboard</span>
                 </div>
               </div>
-              <div className="bg-cyan-50 border border-cyan-200 rounded-xl p-3.5 text-xs text-cyan-800 mb-5">
-                <p className="font-bold text-cyan-900 mb-1">Want to test right now?</p>
-                <p>Use demo: <span className="font-mono font-semibold">company@demo.com</span> / <span className="font-mono font-semibold">company123</span></p>
-                <Link to="/company/login" className="text-cyan-700 font-semibold underline mt-1 inline-block">Go to Company Login →</Link>
-              </div>
+             
               <Link
                 to="/"
                 className="w-full py-3.5 rounded-xl font-bold text-sm text-white transition-all hover:shadow-lg inline-flex items-center justify-center"

@@ -1,11 +1,12 @@
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState,useEffect  } from 'react';
 import { motion } from 'motion/react';
 import {
   ArrowLeft, Search, Download, Mail, Phone,
   MapPin, Calendar, Star, CheckCircle, XCircle, Clock,
   Eye, FileText, User
 } from 'lucide-react';
+import api from '../../utils/api';
 
 const mockApplicants = [
   { id: 1, name: 'James Hartley', role: 'Senior Drilling Engineer', location: 'Houston, TX', email: 'james.hartley@email.com', phone: '+1 (832) 555-0121', applied: '2025-03-15', experience: '12 years', status: 'Shortlisted', rating: 5, avatar: 'JH', resume: true },
@@ -44,8 +45,16 @@ export function CompanyApplicants() {
   const { jobId } = useParams();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
-  const [applicants, setApplicants] = useState(mockApplicants);
+  // const [applicants, setApplicants] = useState(mockApplicants);
   const [selected, setSelected] = useState(null);
+
+
+  const [pagination, setPagination] = useState({});
+const [currentPage, setCurrentPage] = useState(1);
+
+
+  const [applicants, setApplicants] = useState([]);
+const [loading, setLoading] = useState(false);
 
   // ✅ FIX: Detect context so the back arrow returns to the correct jobs page
   const { pathname } = useLocation();
@@ -59,10 +68,29 @@ export function CompanyApplicants() {
     return true;
   });
 
-  const updateStatus = (id, newStatus) => {
-    setApplicants(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a));
-    if (selected?.id === id) setSelected(prev => ({ ...prev, status: newStatus }));
-  };
+
+
+
+  const updateStatus = async (id, newStatus) => {
+  try {
+    await api.post('/employeer/applications/update-status', {
+      application_id: id,
+      status: newStatus
+    });
+
+    // ✅ Update UI after success
+    setApplicants(prev =>
+      prev.map(a => a.id === id ? { ...a, status: newStatus } : a)
+    );
+
+    if (selected?.id === id) {
+      setSelected(prev => ({ ...prev, status: newStatus }));
+    }
+
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   const counts = {
     All: applicants.length,
@@ -71,6 +99,89 @@ export function CompanyApplicants() {
     Shortlisted: applicants.filter(a => a.status === 'Shortlisted').length,
     Rejected: applicants.filter(a => a.status === 'Rejected').length,
   };
+
+
+//   useEffect(() => {
+//     console.log("Fetching applicants for jobId:", jobId); // 🔥 debug
+//   fetchApplicants();
+// }, [jobId]);
+
+
+useEffect(() => {
+  fetchApplicants(1);
+}, [search]);
+
+// const fetchApplicants = async () => {
+//   try {
+//     setLoading(true);
+
+//     // employeer/jobs/8/applicants
+
+//     // const res = await api.get(`/employeer/jobs/${jobId}/applicants`);
+
+
+//      const res = await   api.get(`/employeer/jobs/${jobId}/applicants`, {
+//   params: {
+//     page: 1,
+//     search: search
+//   }
+// });
+
+//     if (res.data.success) {
+//       // 🔥 IMPORTANT: Map API → UI (no UI change)
+//       const formatted = res.data.data.map((item) => ({
+//         id: item.id,
+//         name: item.name,
+//         role: '', // not used in UI
+//         location: item.location,
+//         email: item.email,
+//         phone: item.phone,
+//         applied: item.applied,
+//         experience: item.experience,
+//         status: item.status,
+//         rating: 4, // static for now (UI expects it)
+//         avatar: item.avatar,
+//         resume: item.resume,
+//         resume_link: item.resume_link,
+//       }));
+
+//       setApplicants(formatted);
+//     }
+
+//   } catch (err) {
+//     console.error(err);
+//   } finally {
+//     setLoading(false);
+//   }
+// };
+
+
+
+const fetchApplicants = async (page = 1) => {
+  try {
+    setCurrentPage(page);
+
+    const res = await api.get(`/employeer/jobs/${jobId}/applicants`, {
+      params: {
+        page,
+        search,
+      },
+    });
+
+    if (res.data.success) {
+      setApplicants(res.data.data);
+      setPagination(res.data.pagination);
+    }
+
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+
+if (loading) {
+  return <div className="text-center py-20">Loading applicants...</div>;
+}
 
   return (
     <div className="space-y-6">
@@ -89,10 +200,10 @@ export function CompanyApplicants() {
             <h1 className="text-xl font-bold text-foreground">{jobTitle}</h1>
           </div>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-semibold text-muted-foreground hover:bg-muted/50 transition-colors">
+        {/* <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-semibold text-muted-foreground hover:bg-muted/50 transition-colors">
           <Download className="w-4 h-4" />
           Export CSV
-        </button>
+        </button> */}
       </div>
 
       {/* Stats */}
@@ -164,9 +275,9 @@ export function CompanyApplicants() {
                         <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{applicant.applied}</span>
                       </div>
                       <div className="flex items-center gap-0.5 mt-1.5">
-                        {[...Array(5)].map((_, idx) => (
+                        {/* {[...Array(5)].map((_, idx) => (
                           <Star key={idx} className={`w-3 h-3 ${idx < applicant.rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20'}`} />
-                        ))}
+                        ))} */}
                         <span className="text-xs text-muted-foreground ml-1">{applicant.experience}</span>
                       </div>
                     </div>
@@ -203,12 +314,12 @@ export function CompanyApplicants() {
               <p className="flex items-center gap-2 text-sm text-muted-foreground"><Calendar className="w-4 h-4" />Applied on {selected.applied}</p>
             </div>
 
-            <div className="flex items-center gap-1 mb-5">
+            {/* <div className="flex items-center gap-1 mb-5">
               {[...Array(5)].map((_, idx) => (
                 <Star key={idx} className={`w-4 h-4 ${idx < selected.rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20'}`} />
               ))}
               <span className="text-sm text-muted-foreground ml-1">({selected.rating}/5)</span>
-            </div>
+            </div> */}
 
             {/* Resume */}
             <div className={`rounded-xl border p-3 mb-5 flex items-center justify-between ${selected.resume ? 'border-border' : 'border-dashed border-border/50'}`}>
@@ -217,7 +328,14 @@ export function CompanyApplicants() {
                 <span className="text-sm font-medium text-foreground">{selected.resume ? 'Resume_' + selected.name.replace(' ', '_') + '.pdf' : 'No resume uploaded'}</span>
               </div>
               {selected.resume && (
-                <button className="text-xs font-semibold text-secondary hover:underline">Download</button>
+                <a
+  href={selected.resume_link}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="text-xs font-semibold text-secondary hover:underline"
+>
+  Download
+</a>
               )}
             </div>
 
@@ -254,6 +372,60 @@ export function CompanyApplicants() {
           </motion.div>
         )}
       </div>
+
+
+      {pagination.last_page > 1 && (
+  <div className="flex justify-between items-center mt-6 flex-wrap gap-3">
+
+    {/* Left Info */}
+    <p className="text-sm text-muted-foreground">
+      Page {pagination.current_page} of {pagination.last_page}
+    </p>
+
+    {/* Buttons */}
+    <div className="flex items-center gap-2">
+
+      {/* Prev */}
+      <button
+        disabled={pagination.current_page === 1}
+        onClick={() => fetchApplicants(pagination.current_page - 1)}
+        className="px-3 py-1.5 rounded-lg border border-border text-sm disabled:opacity-50 hover:bg-muted/50"
+      >
+        Prev
+      </button>
+
+      {/* Page Numbers */}
+      {Array.from({ length: pagination.last_page }, (_, i) => i + 1)
+        .slice(
+          Math.max(0, pagination.current_page - 3),
+          pagination.current_page + 2
+        )
+        .map((page) => (
+          <button
+            key={page}
+            onClick={() => fetchApplicants(page)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${
+              page === pagination.current_page
+                ? 'bg-primary text-white border-primary'
+                : 'border-border hover:bg-muted/50'
+            }`}
+          >
+            {page}
+          </button>
+        ))}
+
+      {/* Next */}
+      <button
+        disabled={pagination.current_page === pagination.last_page}
+        onClick={() => fetchApplicants(pagination.current_page + 1)}
+        className="px-3 py-1.5 rounded-lg border border-border text-sm disabled:opacity-50 hover:bg-muted/50"
+      >
+        Next
+      </button>
+
+    </div>
+  </div>
+)}
     </div>
   );
 }

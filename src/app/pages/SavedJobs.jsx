@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Bookmark, BookmarkX, Briefcase, Building2, DollarSign, MapPin, Search, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useState } from 'react';
+import { useState,useEffect  } from 'react';
 import { ApplyNowPaymentModal } from '../components/ApplyNowPaymentModal.jsx';
+import api from '../../utils/api.js';
 
 const initialSavedJobs = [
   { id: 1, title: 'Offshore Rig Supervisor', company: 'Chevron', location: 'Gulf of Mexico', salary: '$150k–$200k', type: 'Contract', logo: '🌊', savedDate: 'Today', category: 'Operations' },
@@ -19,7 +20,10 @@ const jobTypeBadgeStyles = {
 };
 
 export function SavedJobs() {
-  const [savedJobs, setSavedJobs] = useState(initialSavedJobs);
+    const [savedJobs, setSavedJobs] = useState([]);
+const [pagination, setPagination] = useState({});
+const [loading, setLoading] = useState(false);
+
   const [search, setSearch] = useState('');
 
   const filtered = savedJobs.filter(j =>
@@ -28,7 +32,56 @@ export function SavedJobs() {
     j.company.toLowerCase().includes(search.toLowerCase())
   );
 
-  const removeJob = (id) => setSavedJobs(prev => prev.filter(j => j.id !== id));
+
+
+
+
+
+  useEffect(() => {
+  fetchSavedJobs(1);
+}, [search]);
+
+const fetchSavedJobs = async (page = 1) => {
+  try {
+    setLoading(true);
+
+    const res = await api.get('/candidate/saved-jobs', {
+      params: {
+        page,
+        search
+      }
+    });
+
+    if (res.data.success) {
+      setSavedJobs(res.data.data);
+      setPagination(res.data.pagination);
+    }
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+const removeJob = async (id) => {
+  try {
+    await api.delete('/candidate/remove-job', {
+      data: { job_id: id }
+    });
+
+    // remove from UI instantly
+    setSavedJobs(prev => prev.filter(j => j.id !== id));
+
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+
+
+
 
   return (
     <div className="space-y-6">
@@ -68,9 +121,22 @@ export function SavedJobs() {
                   <div className="bg-white border border-border/60 rounded-2xl p-5 hover:shadow-lg hover:border-primary/20 transition-all duration-300 group">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start space-x-4 flex-1 min-w-0">
+                        
                         <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-2xl flex-shrink-0 shadow-sm">
-                          {job.logo}
-                        </div>
+  
+  {job.logo ? (
+    <img
+      src={job.logo}
+      alt={job.company}
+      className="w-full h-full object-cover rounded-xl"
+    />
+  ) : (
+    <span className="font-bold text-primary">
+      {job.company?.charAt(0)?.toUpperCase() || "?"}
+    </span>
+  )}
+
+</div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-2 mb-1">
                             <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${jobTypeBadgeStyles[job.type] || 'bg-gray-50 text-gray-600 border-gray-100'}`}>{job.type}</span>
@@ -111,6 +177,18 @@ export function SavedJobs() {
                 </motion.div>
               ))}
             </AnimatePresence>
+
+            <div className="flex justify-center mt-6 gap-2">
+  {Array.from({ length: pagination.last_page || 1 }, (_, i) => (
+    <button
+      key={i}
+      onClick={() => fetchSavedJobs(i + 1)}
+      className="px-3 py-1 border rounded"
+    >
+      {i + 1}
+    </button>
+  ))}
+</div>
           </div>
         )}
 

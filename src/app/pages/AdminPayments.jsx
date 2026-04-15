@@ -1,20 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Building2, CheckCircle, DollarSign, Clock, Mail, CreditCard, Search } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import api from "../../utils/api";
 
-const PAYMENTS_KEY = "rwj_payments";
 
-function getPayments() {
-  try {
-    return JSON.parse(localStorage.getItem(PAYMENTS_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
 
-function savePayments(payments) {
-  localStorage.setItem(PAYMENTS_KEY, JSON.stringify(payments));
-}
+
+
+
 
 function formatDate(iso) {
   try {
@@ -31,13 +24,16 @@ function formatDate(iso) {
 }
 
 export function AdminPayments() {
-  const [payments, setPayments] = useState(getPayments);
+
+
+  const [payments, setPayments] = useState([]);
+const [pagination, setPagination] = useState({});
+const [loading, setLoading] = useState(false);
+
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState(null);
 
-  useEffect(() => {
-    setPayments(getPayments());
-  }, []);
+
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -55,8 +51,41 @@ export function AdminPayments() {
     // In this mock flow we always create `status: "paid"`, but keep this for future expansion.
     const updated = payments.map((p) => (p.status === "pending" ? { ...p, status: "paid" } : p));
     setPayments(updated);
-    savePayments(updated);
+
   };
+
+
+  useEffect(() => {
+  fetchPayments(1);
+}, [query]);
+
+const fetchPayments = async (page = 1) => {
+  try {
+    setLoading(true);
+
+    const res = await api.get("admin/jobs/payments", {
+      params: {
+        page,
+        search: query,
+      },
+    });
+
+    if (res.data.success) {
+      setPayments(res.data.data);
+      setPagination(res.data.pagination);
+    }
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+if (loading) {
+  return <div className="text-center py-20">Loading payments...</div>;
+}
 
   return (
     <div className="space-y-6">
@@ -177,6 +206,36 @@ export function AdminPayments() {
           </AnimatePresence>
         </div>
       )}
+
+
+      {pagination.last_page > 1 && (
+  <div className="flex justify-between items-center mt-6">
+
+    <p className="text-sm text-muted-foreground">
+      Page {pagination.current_page} of {pagination.last_page}
+    </p>
+
+    <div className="flex gap-2">
+
+      <button
+        disabled={pagination.current_page === 1}
+        onClick={() => fetchPayments(pagination.current_page - 1)}
+        className="px-3 py-1 border rounded"
+      >
+        Prev
+      </button>
+
+      <button
+        disabled={pagination.current_page === pagination.last_page}
+        onClick={() => fetchPayments(pagination.current_page + 1)}
+        className="px-3 py-1 border rounded"
+      >
+        Next
+      </button>
+
+    </div>
+  </div>
+)}
     </div>
   );
 }

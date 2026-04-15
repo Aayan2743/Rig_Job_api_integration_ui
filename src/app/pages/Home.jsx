@@ -160,6 +160,8 @@ const fetchTopCompanies = async () => {
 
     const res = await api.get("/companies/top-companies");
 
+    console.log("Top Companies Response:", res.data); // ✅ debug log
+
     if (res.data.success) {
       setTopCompanies(res.data.data);
     }
@@ -397,7 +399,7 @@ const fetchTopCompanies = async () => {
     whileHover={{ y: -4 }}
   >
     <div
-      onClick={() => window.open(job.apply_url, "_blank")}
+      onClick={() => window.open(`/jobs/${job.id}`, "_blank")}
       className="block bg-white border border-border/60 rounded-2xl p-6 hover:shadow-xl hover:border-primary/20 transition-all duration-300 group cursor-pointer"
     >
 
@@ -642,7 +644,7 @@ const fetchTopCompanies = async () => {
         whileHover={{ scale: 1.06, y: -3 }}
       >
         <Link
-          to={`/companies/${company.id}`} // ✅ better than name
+          to={`/companies/${company.slug}`} // ✅ better than name
           className="block bg-background border border-border/60 rounded-2xl p-5 text-center hover:shadow-lg hover:border-primary/20 transition-all duration-300 group"
         >
 
@@ -658,7 +660,7 @@ const fetchTopCompanies = async () => {
 
           {/* JOB COUNT */}
           <p className="text-xs text-primary font-semibold">
-            {company.jobs_count} jobs
+            {company.jobs_count} jobs 
           </p>
 
         </Link>

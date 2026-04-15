@@ -181,10 +181,7 @@ const handleSubmit = async (e) => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="bg-cyan-50 border border-cyan-200 rounded-xl p-3.5 text-xs text-cyan-800 space-y-1">
-              <p className="font-bold text-cyan-900">Demo Company Credentials</p>
-              <p>Email: <span className="font-mono font-semibold">company@demo.com</span> / Password: <span className="font-mono font-semibold">company123</span></p>
-            </div>
+            
 
             {blockedStatus === 'pending' && (
               <div className="flex items-start space-x-2.5 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">

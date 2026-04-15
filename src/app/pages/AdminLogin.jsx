@@ -89,11 +89,7 @@ console.log("Admin login response:", data);
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <div className="bg-cyan-50 border border-cyan-200 rounded-xl p-3.5 text-xs text-cyan-800 mb-5 space-y-1">
-            <p className="font-bold text-cyan-900">Demo Admin Credentials</p>
-            <p>Email: <span className="font-mono font-semibold">admin@rigworldjobs.com</span></p>
-            <p>Password: <span className="font-mono font-semibold">admin@123</span></p>
-          </div>
+          
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (

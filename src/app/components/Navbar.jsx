@@ -3,6 +3,7 @@ import { Menu, X, Briefcase, ChevronDown, User, Building2, Bell, LogIn } from 'l
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 
+
 const navLinks = [
   { label: 'Home', to: '/' },
   { label: 'Jobs', to: '/jobs' },
@@ -85,7 +86,7 @@ export function Navbar() {
                   className="flex items-center space-x-1.5 px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all"
                 >
                   <User className="w-4 h-4" />
-                  <span>Candidates</span>
+                  <span>Candidates </span>
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showCandidateMenu ? 'rotate-180' : ''}`} />
                 </button>
 
@@ -193,7 +194,7 @@ export function Navbar() {
             <div className="border-t border-border/60 pt-3 mt-3 space-y-1">
               {!isEmployerRoute && (
                 <>
-                  <p className="text-xs font-semibold text-muted-foreground px-4 mb-2 uppercase tracking-wider">Candidates</p>
+                  <p className="text-xs font-semibold text-muted-foreground px-4 mb-2 uppercase tracking-wider">Candidates </p>
                   <Link to="/candidate/login" className="block py-2.5 px-4 rounded-lg text-sm text-foreground hover:bg-muted/50 transition-colors">Sign In</Link>
                   <Link to="/candidate/register" className="block py-2.5 px-4 rounded-lg text-sm text-foreground hover:bg-muted/50 transition-colors">Create Account</Link>
                   <Link to="/candidate/dashboard" className="block py-2.5 px-4 rounded-lg text-sm text-foreground hover:bg-muted/50 transition-colors">Dashboard</Link>

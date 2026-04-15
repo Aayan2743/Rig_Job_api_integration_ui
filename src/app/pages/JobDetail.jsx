@@ -28,11 +28,36 @@ const [loading, setLoading] = useState(false);
 
   const [activeTab, setActiveTab] = useState('Overview');
   const [saved, setSaved] = useState(false);
-  const [applied] = useState(false);
+  // const [applied] = useState(false);
+
+
+  const [alreadyApplied, setAlreadyApplied] = useState(false);
+const [loadingApplyStatus, setLoadingApplyStatus] = useState(true);
 
 
   useEffect(() => {
   fetchsafeJob();
+}, [id]);
+
+
+useEffect(() => {
+  const checkApplied = async () => {
+    try {
+      const res = await api.post("/candidate/check-applied", {
+       job_id: id, // 🔥 must pass
+      });
+
+      setAlreadyApplied(res.data.already_applied);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingApplyStatus(false);
+    }
+  };
+
+  if (id) {
+    checkApplied();
+  }
 }, [id]);
 
 const fetchsafeJob = async () => {
@@ -128,6 +153,43 @@ const safesafeJob = {
 };
 
 
+const handleSave = async () => {
+  if (!safeJob?.id) return;
+
+  try {
+    if (saved) {
+      await api.delete('/candidate/remove-job', {
+        data: { job_id: safeJob.id },
+      });
+      setSaved(false);
+    } else {
+      await api.post('/candidate/save-job', {
+        job_id: safeJob.id,
+      });
+      setSaved(true);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+
+useEffect(() => {
+  if (!safeJob?.id) return;
+
+  const checkSaved = async () => {
+    try {
+      const res = await api.get(`/candidate/saved-jobs/check/${safeJob.id}`);
+      setSaved(res.data.saved);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  checkSaved();
+}, [safeJob?.id]);
+
+
 if (loading || !safeJob) {
   return <div className="p-10 text-center">Loading safeJob...</div>;
 }
@@ -141,7 +203,7 @@ if (loading || !safeJob) {
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
             <Link to="/" className="hover:text-primary transition-colors">Home</Link>
             <ChevronRight className="w-4 h-4" />
-            <Link to="/safeJob" className="hover:text-primary transition-colors">safeJob</Link>
+            <Link to="/Jobs" className="hover:text-primary transition-colors">Jobs</Link>
             <ChevronRight className="w-4 h-4" />
             <span className="text-foreground font-medium truncate">{safeJob.title}</span>
           </div>
@@ -176,13 +238,15 @@ if (loading || !safeJob) {
                       <p className="text-muted-foreground font-medium flex items-center space-x-1.5">
                         <Building2 className="w-4 h-4" />
                         {/* <span>{safeJob.company}</span> */}
-                        <Link to={`/companies/${safeJob?.company?.id}`} className="block text-center text-primary hover:text-primary/80 font-semibold text-sm transition-colors hover:underline">
+                        <Link to={`/companies/${safeJob?.company?.slug}`} className="block text-center text-primary hover:text-primary/80 font-semibold text-sm transition-colors hover:underline">
                  {safeJob?.company?.company_name}
               </Link>
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2 flex-shrink-0">
+
+
+                  {/* <div className="flex items-center space-x-2 flex-shrink-0">
                     <button
                       onClick={() => setSaved(!saved)}
                       className={`p-2.5 rounded-xl border transition-all ${saved ? 'bg-primary/10 border-primary/30 text-primary' : 'border-border hover:bg-muted/50 text-muted-foreground'}`}
@@ -192,7 +256,34 @@ if (loading || !safeJob) {
                     <button className="p-2.5 rounded-xl border border-border hover:bg-muted/50 text-muted-foreground transition-all">
                       <Share2 className="w-5 h-5" />
                     </button>
-                  </div>
+                  </div> */}
+
+                  <div className="flex items-center space-x-2 flex-shrink-0">
+  
+  <button
+    onClick={handleSave}
+    className={`p-2.5 rounded-xl border transition-all ${
+      saved
+        ? 'bg-primary/10 border-primary/30 text-primary'
+        : 'border-border hover:bg-muted/50 text-muted-foreground'
+    }`}
+  >
+    <Bookmark className={`w-5 h-5 ${saved ? 'fill-primary' : ''}`} />
+  </button>
+
+  <button
+    onClick={() => {
+      navigator.clipboard.writeText(window.location.href);
+      alert("Link copied!");
+    }}
+    className="p-2.5 rounded-xl border border-border hover:bg-muted/50 text-muted-foreground transition-all"
+  >
+    <Share2 className="w-5 h-5" />
+  </button>
+
+</div>
+
+
                 </div>
 
                 {/* Meta tags */}
@@ -348,7 +439,7 @@ if (loading || !safeJob) {
               animate={{ opacity: 1, x: 0 }}
               className="bg-white rounded-2xl border border-border/60 p-6 sticky top-24 shadow-sm"
             >
-              {applied ? (
+              {/* {applied ? (
                 <button
                   type="button"
                   className="w-full py-3.5 rounded-xl font-bold text-sm transition-all mb-3 shine-effect bg-emerald-50 text-emerald-700 border-2 border-emerald-200"
@@ -359,20 +450,48 @@ if (loading || !safeJob) {
               ) : (
                 <ApplyNowPaymentModal
                   feeAmount={5}
+                  jobId={safeJob.id}
                   feeLabel="Application Fee"
                   paymentPath="/payment"
-                  triggerLabel="Apply Now"
+                  triggerLabel={"Apply Now"}
                   triggerClassName="w-full py-3.5 rounded-xl font-bold text-sm transition-all mb-3 shine-effect text-white hover:shadow-lg hover:scale-[1.02]"
                   triggerStyle={{ background: 'var(--gradient-primary)' }}
                 />
-              )}
+              )} */}
+
+
+
+
+              {loadingApplyStatus ? (
+  <button className="w-full py-3.5 rounded-xl bg-gray-200 text-gray-500">
+    Checking...
+  </button>
+) : alreadyApplied ? (
+  <button
+    type="button"
+    className="w-full py-3.5 rounded-xl font-bold text-sm mb-3 bg-emerald-50 text-emerald-700 border-2 border-emerald-200"
+    disabled
+  >
+    ✓ Already Applied
+  </button>
+) : (
+  <ApplyNowPaymentModal
+    feeAmount={5}
+    jobId={safeJob.id}
+    feeLabel="Application Fee"
+    paymentPath="/payment"
+    triggerLabel={"Apply Now"}
+    triggerClassName="w-full py-3.5 rounded-xl font-bold text-sm mb-3 text-white hover:shadow-lg hover:scale-[1.02]"
+    triggerStyle={{ background: 'var(--gradient-primary)' }}
+  />
+)}
               <button
                 onClick={() => setSaved(!saved)}
                 className={`w-full py-3 rounded-xl font-semibold text-sm transition-all border ${
                   saved ? 'bg-primary/8 text-primary border-primary/20' : 'border-border text-foreground hover:bg-muted/50'
                 }`}
               >
-                {saved ? '✓ Saved' : 'Save safeJob'}
+                {saved ? '✓ Saved' : 'Save Job'}
               </button>
 
               <div className="mt-5 pt-5 border-t border-border/60 space-y-3 text-sm">
@@ -411,7 +530,7 @@ if (loading || !safeJob) {
               transition={{ delay: 0.1 }}
               className="bg-white rounded-2xl border border-border/60 p-6 shadow-sm"
             >
-              <h3 className="text-lg font-bold text-foreground mb-4">About the Company</h3>
+              <h3 className="text-lg font-bold text-foreground mb-4">About the Company </h3>
               <div className="flex items-center space-x-3 mb-4">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-2xl">
                   {safeJob.logo}
@@ -429,21 +548,59 @@ if (loading || !safeJob) {
               <p className="text-sm text-muted-foreground leading-relaxed mb-5">company info goes here</p>
 
               <div className="grid grid-cols-2 gap-3 mb-4">
-                {[
-                  { icon: Building2, label: 'Industry', value: safeJob?.company?.industry?.name || 'N/A' },
-                  { icon: Users, label: 'Employees', value: safeJob?.company?.company_size || 'N/A' },
-                  { icon: Clock, label: 'Founded', value: safeJob?.company?.founded || 'N/A' },
-                  { icon: Globe, label: 'Website', value: safeJob?.company?.website || 'N/A' },
-                ].map(({ icon: Icon, label, value }) => (
-                  <div key={label} className="bg-background rounded-xl p-3 border border-border/60">
-                    <div className="flex items-center space-x-1.5 mb-1">
-                      <Icon className="w-3.5 h-3.5 text-primary" />
-                      <span className="text-xs text-muted-foreground">{label}</span>
-                    </div>
-                    <span className="text-sm font-semibold text-foreground">{value}</span>
-                  </div>
-                ))}
-              </div>
+  {[
+    {
+      icon: Building2,
+      label: 'Industry',
+      value: safeJob?.company?.industry?.name || 'N/A',
+      isLink: false,
+    },
+    {
+      icon: Users,
+      label: 'Employees',
+      value: safeJob?.company?.company_size || 'N/A',
+      isLink: false,
+    },
+    {
+      icon: Clock,
+      label: 'Founded',
+      value: safeJob?.company?.founded || 'N/A',
+      isLink: false,
+    },
+    {
+      icon: Globe,
+      label: 'Website',
+      value: safeJob?.company?.website || 'N/A',
+      isLink: true, // ✅ important
+    },
+  ].map(({ icon: Icon, label, value, isLink }) => (
+    <div
+      key={label}
+      className="bg-background rounded-xl p-3 border border-border/60"
+    >
+      <div className="flex items-center space-x-1.5 mb-1">
+        <Icon className="w-3.5 h-3.5 text-primary" />
+        <span className="text-xs text-muted-foreground">{label}</span>
+      </div>
+
+      {/* ✅ Value */}
+      {isLink && value !== 'N/A' ? (
+        <a
+          href={value.startsWith('http') ? value : `https://${value}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm font-semibold text-primary break-all hover:underline"
+        >
+          {value}
+        </a>
+      ) : (
+        <span className="text-sm font-semibold text-foreground break-words">
+          {value}
+        </span>
+      )}
+    </div>
+  ))}
+</div>
               <Link to={`/companies/${safeJob.company.slug}`} className="block text-center text-primary hover:text-primary/80 font-semibold text-sm transition-colors hover:underline">
                 View Company Profile → 
               </Link>

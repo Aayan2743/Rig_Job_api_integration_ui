@@ -171,11 +171,11 @@ if (loading || !company) {
               </div>
             </div>
             <div className="flex gap-3 flex-shrink-0">
-              <Link to={`/jobs?company=${company.name}`}
+              <Link to={`/jobs?company=${company.slug}`}
                 className="flex items-center space-x-2 px-6 py-3 rounded-xl text-white font-semibold text-sm shine-effect hover:shadow-lg transition-all"
                 style={{ background: 'var(--gradient-primary)' }}>
                 <Briefcase className="w-4 h-4" />
-                <span>View {company.openJobs} Jobs</span>
+                <span>View {company.openJobs} Jobs </span>
               </Link>
             </div>
           </div>

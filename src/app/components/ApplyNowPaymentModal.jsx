@@ -1,8 +1,13 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useId, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from "../../utils/api.js";
 
 export function ApplyNowPaymentModal({
+
+ jobId, 
+  onSuccess,
+
   feeAmount = 5,
   feeLabel = 'Application Fee',
   paymentPath = '/payment',
@@ -10,6 +15,9 @@ export function ApplyNowPaymentModal({
   triggerClassName = '',
   triggerStyle,
 }) {
+
+
+  const [hasPaid, setHasPaid] = useState(null);
   const navigate = useNavigate();
   const titleId = useId();
   const descId = useId();
@@ -21,6 +29,19 @@ export function ApplyNowPaymentModal({
     setOpen(false);
     navigate(paymentPath);
   };
+
+  useEffect(() => {
+  const checkPayment = async () => {
+    try {
+      const res = await api.get("/candidate/check-payment");
+      setHasPaid(res.data.has_paid);
+    } catch {
+      setHasPaid(false);
+    }
+  };
+
+  checkPayment();
+}, []);
 
   useEffect(() => {
     if (!open) return;
@@ -40,15 +61,49 @@ export function ApplyNowPaymentModal({
     };
   }, [open]);
 
+
+  const applyJob = async () => {
+  try {
+    const res = await api.post("/candidate/apply-job", {
+      job_id: jobId, // 🔥 pass your job id here
+    });
+
+    if (res.data.success) {
+      alert("✅ Applied successfully!");
+      if (onSuccess) {
+    onSuccess(); // 🔥 update parent
+  }
+    } else {
+      alert(res.data.message || "Apply failed");
+    }
+  } catch (err) {
+    alert("Something went wrong");
+  }
+};
+
   return (
     <>
       <button
         type="button"
+       
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
+
+          if (hasPaid === null) return; // still loading
+
+
+
+           if (hasPaid) {
+              // ✅ APPLY + ALERT
+              applyJob();
+              return;
+            }
+
+          // ❌ Not paid → open modal
           setOpen(true);
         }}
+
         className={triggerClassName}
         style={triggerStyle}
       >

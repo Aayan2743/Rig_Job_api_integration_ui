@@ -25,6 +25,8 @@ const experienceLevels = ['Entry Level (0–2 yrs)', 'Mid Level (2–5 yrs)', 'S
 const salaryRanges = ['$0 – $50k', '$50k – $100k', '$100k – $150k', '$150k+'];
 const categories = ['Engineering', 'Safety & HSE', 'Operations', 'Management', 'Technical Support'];
 
+
+
 function JobTypeBadge({ type }) {
   const colors = {
     'Full-time': 'bg-emerald-50 text-emerald-700 border-emerald-100',
@@ -56,6 +58,7 @@ const location = useLocation();
 const params = new URLSearchParams(location.search);
 
 const slug = params.get("category"); // ✅ important
+const company = params.get("company"); // ✅ new
 
 console.log("Slug from URL:", slug);
 
@@ -67,6 +70,8 @@ const [pagination, setPagination] = useState({});
 const [page, setPage] = useState(1);
 
 const [selectedSalary, setSelectedSalary] = useState([]);
+
+const [appliedJobs, setAppliedJobs] = useState([]);
 
 
   const [showFilters, setShowFilters] = useState(false);
@@ -97,43 +102,63 @@ const [selectedSalary, setSelectedSalary] = useState([]);
 
 
 
+
 useEffect(() => {
   fetchJobs(1);
-}, [slug, searchQ, locationQ, selectedJobTypes, selectedExperience]);
+}, [slug, company, searchQ, locationQ, selectedJobTypes, selectedExperience]);
 
-// const fetchJobs = async () => {
+
+useEffect(() => {
+  const fetchAppliedJobs = async () => {
+    try {
+      const res = await api.get("/candidate/my-applications");
+
+      if (res.data.success) {
+        const ids = res.data.data.map(item => item.job_id);
+        setAppliedJobs(ids);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  fetchAppliedJobs();
+}, []);
+
+
+
+// const fetchJobs = async (pageNumber = 1) => {
 //   try {
 //     setLoading(true);
 
-//     const res = await api.get(`/companies/jobs/industry/${slug}`);
+//     const params = {
+//       page: pageNumber,
+//       search: searchQ,
+//       location: locationQ,
+//     };
 
-//     if (res.data.success) {
-//       setJobs(res.data.data);
+//     // ✅ job type
+//     if (selectedJobTypes.length) {
+//       params.job_type = selectedJobTypes;
 //     }
 
-//   } catch (err) {
-//     console.error(err);
-//   } finally {
-//     setLoading(false);
-//   }
-// };
-
-// const fetchJobs = async () => {
-//   try {
-//     setLoading(true);
+//     // ✅ experience
+//     if (selectedExperience.length) {
+//       params.experience_level = selectedExperience;
+//     }
 
 //     let res;
 
 //     if (slug) {
-//       // ✅ Industry filter
-//       res = await api.get(`/companies/jobs/industry/${slug}`);
+//       res = await api.get(`/companies/jobs/industry/${slug}`, { params });
 //     } else {
-//       // ✅ All jobs
-//       res = await api.get(`/companies/jobs`);
+//       res = await api.get(`/companies/jobs`, { params });
 //     }
 
 //     if (res.data.success) {
 //       setJobs(res.data.data);
+//       setPagination(res.data.pagination);
+//       setPage(pageNumber);
 //     }
 
 //   } catch (err) {
@@ -142,9 +167,7 @@ useEffect(() => {
 //     setLoading(false);
 //   }
 // };
-
-
-
+  
 const fetchJobs = async (pageNumber = 1) => {
   try {
     setLoading(true);
@@ -155,14 +178,16 @@ const fetchJobs = async (pageNumber = 1) => {
       location: locationQ,
     };
 
-    // ✅ job type
     if (selectedJobTypes.length) {
       params.job_type = selectedJobTypes;
     }
 
-    // ✅ experience
     if (selectedExperience.length) {
       params.experience_level = selectedExperience;
+    }
+
+    if (company) {
+      params.company = company; // ✅ ADD THIS
     }
 
     let res;
@@ -185,7 +210,8 @@ const fetchJobs = async (pageNumber = 1) => {
     setLoading(false);
   }
 };
-  return (
+
+return (
     <div className="min-h-screen bg-background">
 
       {/* ── Search Header ── */}
@@ -446,8 +472,9 @@ const fetchJobs = async (pageNumber = 1) => {
                         </div>
 
                         {/* Action */}
-                        <div className="flex-shrink-0">
+                        {/* <div className="flex-shrink-0">
                           <ApplyNowPaymentModal
+                          jobId={job.id}
                             feeAmount={5}
                             feeLabel="Application Fee"
                             paymentPath="/payment"
@@ -455,7 +482,30 @@ const fetchJobs = async (pageNumber = 1) => {
                             triggerClassName="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:shadow-md hover:scale-[1.03] shine-effect"
                             triggerStyle={{ background: 'var(--gradient-primary)' }}
                           />
-                        </div>
+                        </div> */}
+
+
+
+                        {appliedJobs.includes(job.id) ? (
+              <button className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-gray-200 text-gray-600 cursor-not-allowed">
+                ✓ Applied
+              </button>
+            ) : (
+              <ApplyNowPaymentModal
+                jobId={job.id}
+                feeAmount={5}
+                feeLabel="Application Fee"
+                paymentPath="/payment"
+                triggerLabel="Apply Now"
+                triggerClassName="px-5 py-2.5 rounded-xl text-sm font-semibold text-white hover:shadow-md hover:scale-[1.03]"
+                triggerStyle={{ background: 'var(--gradient-primary)' }}
+                
+                // 🔥 IMPORTANT CALLBACK
+                onSuccess={() => {
+                  setAppliedJobs(prev => [...prev, job.id]);
+                }}
+              />
+            )}
                       </div>
                     </Link>
                   </motion.div>

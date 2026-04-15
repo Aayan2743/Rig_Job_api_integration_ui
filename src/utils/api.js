@@ -2,7 +2,8 @@ import axios from "axios";
 
 // ✅ Create axios instance
 const api = axios.create({
-  baseURL: "http://127.0.0.1:8000/api", // 🔁 change to your Laravel API URL
+  // baseURL: "http://127.0.0.1:8000/api", // 🔁 change to your Laravel API URL
+  baseURL: "https://api-rig-jobs.easybizcart.com/public/api", // 🔁 change to your Laravel API URL
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",

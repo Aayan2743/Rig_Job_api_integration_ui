@@ -3,6 +3,14 @@ import { Building2, CheckCircle, XCircle, Clock, Phone, Globe, Mail, Briefcase, 
 import { motion, AnimatePresence } from 'motion/react';
 import api from "../../utils/api";
 
+import {
+  showSuccess,
+  showError,
+  showConfirm,
+  showLoading,
+  closeAlert
+} from "../../utils/alert";
+
 
 
 const REQUESTS_KEY = 'rwj_company_requests';
@@ -66,55 +74,61 @@ const [search, setSearch] = useState("");
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
-  const approve = (req) => {
-    const updated = requests.map(r => r.id === req.id ? { ...r, status: 'approved', approvedAt: new Date().toISOString() } : r);
+
+const approve = async (req) => {
+  const confirm = await showConfirm(
+    `Approve ${req.company_name}?`
+  );
+
+  if (!confirm) return;
+
+  try {
+    showLoading("Approving...");
+
+    await api.post(`/admin/company-requests/approve/${req.id}`);
+
+    closeAlert();
+
+    const updated = requests.map(r =>
+      r.id === req.id
+        ? { ...r, status: "approved", approvedAt: new Date().toISOString() }
+        : r
+    );
+
     setRequests(updated);
-    saveRequests(updated);
 
-    const users = getUsers();
-    if (!users.find(u => u.users?.email === req.users?.email)) {
-      saveUsers([...users, {
-        id: Date.now(), name: `${req.company_name} (${req.contact_person})`,
-        email: req.users?.email, password: req.password, role: 'employer', approvalStatus: 'approved', company_name: req.company_name,
-      }]);
-    } else {
-      saveUsers(users.map(u => u.users?.email === req.users?.email ? { ...u, approvalStatus: 'approved' } : u));
-    }
+    showSuccess(`${req.company_name} approved successfully 🎉`);
 
-    const notifs = getNotifications();
-    saveNotifications([{
-      id: `notif_${Date.now()}`, recipientemail: req.users?.email, type: 'approval',
-      title: 'Your Company Registration is Approved!',
-      message: `Congratulations! "${req.company_name}" has been approved. You can now log in and post jobs.`,
-      credentials: { email: req.users?.email, password: req.password },
-      createdAt: new Date().toISOString(), read: false,
-    }, ...notifs]);
-
-    showToast(`✓ ${req.company_name} approved`);
-  };
+  } catch (err) {
+    closeAlert();
+    showError(err.response?.data?.message || "Approve failed");
+  }
+};
 
 
 
-
-
-const handleRejectSubmit = async (req) => {
+const handleRejectSubmit = async () => {
   if (!rejectModal.remark.trim()) {
-    alert("Remark is required");
+    showError("Remark is required");
     return;
   }
 
   try {
+    showLoading("Rejecting...");
+
     const req = rejectModal.company;
 
     await api.post(`/admin/company-requests/reject/${req.id}`, {
       remark: rejectModal.remark,
     });
 
+    closeAlert();
+
     const updated = requests.map(r =>
       r.id === req.id
         ? {
             ...r,
-            status: 'rejected',
+            status: "rejected",
             remark: rejectModal.remark,
             rejectedAt: new Date().toISOString()
           }
@@ -123,14 +137,13 @@ const handleRejectSubmit = async (req) => {
 
     setRequests(updated);
 
-    showToast(`✗ ${req.company_name} rejected`);
-
-    // ✅ CLOSE MODAL
     setRejectModal({ open: false, company: null, remark: "" });
 
+    showSuccess(`${req.company_name} rejected ❌`);
+
   } catch (err) {
-    console.error(err);
-    alert("Reject failed");
+    closeAlert();
+    showError(err.response?.data?.message || "Reject failed");
   }
 };
 
