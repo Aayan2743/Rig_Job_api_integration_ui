@@ -30,7 +30,28 @@ export function ApplyNowPaymentModal({
     navigate(paymentPath);
   };
 
-  useEffect(() => {
+//   useEffect(() => {
+//   const checkPayment = async () => {
+//     try {
+//       const res = await api.get("/candidate/check-payment");
+//       setHasPaid(res.data.has_paid);
+//     } catch {
+//       setHasPaid(false);
+//     }
+//   };
+
+//   checkPayment();
+// }, []);
+
+
+useEffect(() => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    setHasPaid(false); // or null
+    return; // ❌ STOP API CALL
+  }
+
   const checkPayment = async () => {
     try {
       const res = await api.get("/candidate/check-payment");

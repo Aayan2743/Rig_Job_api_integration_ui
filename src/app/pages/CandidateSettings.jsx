@@ -1,16 +1,19 @@
 import { Mail, Phone, Lock, Bell, Globe, User, Shield, Save, Check } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
+import api from "../../utils/api";
+import { showError, showSuccess } from '../../utils/alert';
+// import { showSuccess, showError } from  '../../utils/notifications.js';
 
 const settingsSections = [
-  { id: 'account', label: 'Account', icon: User },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'privacy', label: 'Privacy', icon: Shield },
+  // { id: 'account', label: 'Account', icon: User },
+  // { id: 'notifications', label: 'Notifications', icon: Bell },
+  // { id: 'privacy', label: 'Privacy', icon: Shield },
   { id: 'security', label: 'Security', icon: Lock },
 ];
 
 export function CandidateSettings() {
-  const [activeSection, setActiveSection] = useState('account');
+  const [activeSection, setActiveSection] = useState('security');
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState({
     name: 'John Doe', email: 'john.doe@email.com', phone: '+1 (555) 012-3456',
@@ -18,6 +21,46 @@ export function CandidateSettings() {
     jobAlerts: true, applicationUpdates: true, weeklyDigest: false, marketingEmails: false,
     profileVisible: true, showSalary: true, openToWork: true,
   });
+
+
+
+  const [passwords, setPasswords] = useState({
+  current_password: "",
+  new_password: "",
+  confirm_password: "",
+});
+
+const [loading, setLoading] = useState(false);
+const [message, setMessage] = useState("");
+
+
+const handlePasswordChange = (e) => {
+  const { name, value } = e.target;
+  setPasswords(prev => ({ ...prev, [name]: value }));
+};
+
+
+const handleChangePassword = async () => {
+  try {
+    setLoading(true);
+
+    const res = await api.post("/employeer/settings/change-password", passwords);
+
+    if (res.data.success) {
+      showSuccess(res.data.message);
+
+      setPasswords({
+        current_password: "",
+        new_password: "",
+        confirm_password: "",
+      });
+    }
+  } catch (err) {
+    showError(err.response?.data?.errors || err.response?.data?.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -167,57 +210,106 @@ export function CandidateSettings() {
               )}
 
               {/* ── Security Section ── */}
-              {activeSection === 'security' && (
-                <div className="bg-white rounded-2xl border border-border/60 p-6 shadow-sm">
-                  <h2 className="text-xl font-bold text-foreground border-b border-border/60 pb-4 mb-5">Security Settings</h2>
-                  <div className="space-y-5">
-                    <div>
-                      <label className="block text-sm font-semibold text-foreground mb-2">Current Password</label>
-                      <div className="relative">
-                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <input type="password" placeholder="Enter current password"
-                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white text-sm transition-all" />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-foreground mb-2">New Password</label>
-                      <div className="relative">
-                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <input type="password" placeholder="Create new password"
-                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white text-sm transition-all" />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-foreground mb-2">Confirm New Password</label>
-                      <div className="relative">
-                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <input type="password" placeholder="Confirm new password"
-                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white text-sm transition-all" />
-                      </div>
-                    </div>
-                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-blue-800 text-sm">Two-Factor Authentication</p>
-                        <p className="text-xs text-blue-700 mt-0.5">Add an extra layer of security to your account</p>
-                      </div>
-                      <button className="text-sm font-semibold text-primary border border-primary/20 px-4 py-2 rounded-lg hover:bg-primary/5 transition-colors">
-                        Enable 2FA
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+             {activeSection === 'security' && (
+  <div className="bg-white rounded-2xl border border-border/60 p-6 shadow-sm space-y-6">
+
+    {/* Header */}
+    <div className="border-b border-border/60 pb-4">
+      <h2 className="text-xl font-bold text-foreground">Security Settings</h2>
+      <p className="text-sm text-muted-foreground mt-1">
+        Manage your password and account security
+      </p>
+    </div>
+
+    {/* Password Section */}
+    <div className="space-y-4">
+      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+        Change Password
+      </h3>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        
+        {/* Current Password */}
+        <div className="sm:col-span-2">
+          <label className="text-sm font-semibold mb-2 block">Current Password</label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+           <input
+  type="password"
+  name="current_password"
+  value={passwords.current_password}
+  onChange={handlePasswordChange}
+  placeholder="Enter current password"
+  className="w-full pl-10 pr-4 py-3 border rounded-xl"
+/>
+          </div>
+        </div>
+
+        {/* New Password */}
+        <div>
+          <label className="text-sm font-semibold mb-2 block">New Password</label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="password"
+              name="new_password"
+              value={passwords.new_password}
+              onChange={handlePasswordChange}
+              placeholder="Create new password"
+              className="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Confirm Password */}
+        <div>
+          <label className="text-sm font-semibold mb-2 block">Confirm Password</label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="password"
+              name="confirm_password"
+              value={passwords.confirm_password}
+              onChange={handlePasswordChange}
+              placeholder="Confirm new password"
+              className="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Password Strength */}
+      
+    </div>
+
+    {/* 2FA Section */}
+  
+
+    {/* Active Sessions */}
+
+
+  </div>
+)}
 
               {/* Save Btn */}
               <div className="mt-5 flex justify-end">
-                <button onClick={handleSave}
-                  className={`flex items-center space-x-2 px-7 py-3 rounded-xl text-white font-bold text-sm transition-all hover:shadow-md ${saved ? 'bg-emerald-500' : 'shine-effect hover:scale-[1.02]'}`}
-                  style={!saved ? { background: 'var(--gradient-primary)' } : {}}>
-                  {saved ? <><Check className="w-4 h-4" /><span>Saved!</span></> : <><Save className="w-4 h-4" /><span>Save Changes</span></>}
-                </button>
+                <button
+  onClick={handleChangePassword}
+  disabled={loading}
+  className="px-6 py-3 rounded-xl text-white font-bold"
+  style={{ background: 'var(--gradient-primary)' }}
+>
+  {loading ? "Updating..." : "Update Password"}
+</button>
               </div>
         </motion.div>
       </div>
+
+      {message && (
+  <p className="text-sm mt-3 text-center text-green-600">
+    {message}
+  </p>
+)}
     </div>
   );
 }

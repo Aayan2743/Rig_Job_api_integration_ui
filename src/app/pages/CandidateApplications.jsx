@@ -1,16 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Briefcase, MapPin, DollarSign, Clock, Search, X } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useState } from 'react';
+import { useState,useEffect } from 'react';
+import api from '../../utils/api';
 
-const applications = [
-  { id: 1, title: 'Senior Drilling Engineer', company: 'Shell Energy', location: 'Houston, TX', salary: '$120k–$180k', appliedDate: '2 days ago', status: 'Interview Scheduled', interviewDate: 'Mar 15, 2026', logo: '🛢️' },
-  { id: 2, title: 'Safety Manager', company: 'BP Operations', location: 'Aberdeen, UK', salary: '$90k–$130k', appliedDate: '5 days ago', status: 'Under Review', logo: '⚡' },
-  { id: 3, title: 'Process Engineer', company: 'ExxonMobil', location: 'Singapore', salary: '$95k–$140k', appliedDate: '1 week ago', status: 'Application Sent', logo: '🏭' },
-  { id: 4, title: 'Offshore Platform Engineer', company: 'Equinor', location: 'Stavanger, Norway', salary: '$100k–$145k', appliedDate: '2 weeks ago', status: 'Shortlisted', logo: '🔵' },
-  { id: 5, title: 'Rig Supervisor', company: 'Chevron', location: 'Gulf of Mexico', salary: '$150k–$200k', appliedDate: '3 weeks ago', status: 'Rejected', logo: '🌊' },
-  { id: 6, title: 'HSE Coordinator', company: 'TotalEnergies', location: 'Paris, France', salary: '$70k–$95k', appliedDate: '1 month ago', status: 'Withdrawn', logo: '☀️' },
-];
+
 
 const statusConfig = {
   'Interview Scheduled': { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500', label: '🗓️ Interview Scheduled' },
@@ -24,14 +18,17 @@ const statusConfig = {
 const statusFilters = ['All', 'Interview Scheduled', 'Shortlisted', 'Under Review', 'Application Sent', 'Rejected'];
 
 export function CandidateApplications() {
+
+  const [applications, setApplications] = useState([]);
+const [loading, setLoading] = useState(false);
+const [page, setPage] = useState(1);
+const [pagination, setPagination] = useState({});
+
+
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
 
-  const filtered = applications.filter(a => {
-    if (filter !== 'All' && a.status !== filter) return false;
-    if (search && !a.title.toLowerCase().includes(search.toLowerCase()) && !a.company.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+const filtered = applications;
 
   const stats = [
     { label: 'Total Applied', value: applications.length },
@@ -39,6 +36,55 @@ export function CandidateApplications() {
     { label: 'Interviews', value: applications.filter(a => a.status === 'Interview Scheduled').length },
     { label: 'Shortlisted', value: applications.filter(a => a.status === 'Shortlisted').length },
   ];
+
+
+
+  const fetchApplications = async (pageNumber = 1) => {
+  try {
+    setLoading(true);
+
+    const res = await api.get("/candidate/applications", {
+      params: {
+        page: pageNumber,
+        search: search,
+        status: filter,
+      },
+    });
+
+    if (res.data.success) {
+      console.log("Raw API response:", res.data);
+      // 🔥 MAP DATA (IMPORTANT)
+      const formatted = res.data.data.map(item => ({
+        id: item.job.id,
+        title: item.job.title,
+        company: item.job.company.company_name,
+        company_logo: item.job.company.logo,
+        location: item.job.location,
+        salary: `${item.job.salary_min} - ${item.job.salary_max}`,
+        appliedDate: new Date(item.created_at).toDateString(),
+        status: item.status,
+      }));
+
+      setApplications(formatted);
+      setPagination(res.data.pagination);
+      setPage(pageNumber);
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+useEffect(() => {
+  fetchApplications(1);
+}, [search, filter]);
+
+
+{loading && (
+  <div className="text-center py-10">Loading...</div>
+)}
 
   return (
     <div className="space-y-6">
@@ -86,14 +132,28 @@ export function CandidateApplications() {
           <div className="space-y-4">
             {filtered.map((app, i) => {
               const sc = statusConfig[app.status] || statusConfig['Application Sent'];
+
+              console.log(app);
               return (
                 <motion.div key={app.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
                   <div className="bg-white border border-border/60 rounded-2xl p-5 hover:shadow-md hover:border-primary/20 transition-all group">
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                       <div className="flex items-start space-x-4">
-                        <div className="w-13 h-13 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-2xl flex-shrink-0 shadow-sm w-14 h-14">
-                          {app.logo}
-                        </div>
+                   <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden">
+                    {app?.company_logo ? (
+                      <img
+                        src={app?.company_logo}
+                        alt={app?.company}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-2xl font-bold text-blue-700">
+                        {/* {app.job?.company?.company_name?.charAt(0)?.toUpperCase() || "?"} */}
+                        {app?.company?.split(" ").map(word => word.charAt(0).toUpperCase()).join("") || "?"}
+                      </span>
+                    )}
+                  </div>
+
                         <div>
                           <Link to={`/jobs/${app.id}`} className="text-lg font-bold text-foreground group-hover:text-primary transition-colors block mb-0.5">{app.title}</Link>
                           <p className="text-sm text-muted-foreground mb-3">{app.company}</p>
@@ -123,6 +183,21 @@ export function CandidateApplications() {
             })}
           </div>
         )}
+
+
+        <div className="flex justify-center mt-6 space-x-2">
+  {Array.from({ length: pagination.last_page || 1 }, (_, i) => (
+    <button
+      key={i}
+      onClick={() => fetchApplications(i + 1)}
+      className={`px-3 py-2 rounded ${
+        page === i + 1 ? 'bg-primary text-white' : 'bg-white border'
+      }`}
+    >
+      {i + 1}
+    </button>
+  ))}
+</div>
     </div>
   );
 }

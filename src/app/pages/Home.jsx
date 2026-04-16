@@ -390,6 +390,8 @@ const fetchTopCompanies = async () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
            {featuredJobs.map((job, index) => (
+
+            console.log("Rendering Job:", job), // ✅ debug log
   <motion.div
     key={job.id}
     initial={{ opacity: 0, y: 24 }}
@@ -406,9 +408,19 @@ const fetchTopCompanies = async () => {
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-start space-x-4">
-          <div className="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center text-xl">
-            💼
-          </div>
+         <div className="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center overflow-hidden">
+  {job.company_logo ? (
+    <img
+      src={job.company_logo}
+      alt={job.company}
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <span className="text-xl font-bold text-blue-700">
+      {job.company?.charAt(0)?.toUpperCase() || "?"}
+    </span>
+  )}
+</div>
 
           <div>
             <h3 className="text-lg font-bold group-hover:text-primary">
@@ -649,9 +661,19 @@ const fetchTopCompanies = async () => {
         >
 
           {/* ICON (fallback) */}
-          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-xl mx-auto mb-3 group-hover:scale-110 transition-transform">
-            🏢
-          </div>
+       <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform overflow-hidden">
+  {company.company_logo ? (
+    <img
+      src={company.company_logo}
+      alt={company.company_name}
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <span className="text-xl font-bold text-blue-700">
+      {company.company_name?.charAt(0)?.toUpperCase() || "?"}
+    </span>
+  )}
+</div>
 
           {/* NAME */}
           <h3 className="font-bold text-foreground text-sm mb-0.5">

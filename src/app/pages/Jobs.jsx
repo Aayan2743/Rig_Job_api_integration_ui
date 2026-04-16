@@ -109,6 +109,10 @@ useEffect(() => {
 
 
 useEffect(() => {
+  const token = localStorage.getItem("token");
+
+  if (!token) return; // ❌ stop if not logged in
+
   const fetchAppliedJobs = async () => {
     try {
       const res = await api.get("/candidate/my-applications");
@@ -210,6 +214,32 @@ const fetchJobs = async (pageNumber = 1) => {
     setLoading(false);
   }
 };
+
+  const token = localStorage.getItem("token");
+
+
+useEffect(() => {
+  const token = localStorage.getItem("token");
+
+  if (!token) return;
+
+  const fetchAppliedJobs = async () => {
+    try {
+      const res = await api.get("/candidate/my-applications");
+
+      if (res.data.success) {
+        // ✅ ADD HERE (IMPORTANT LINE)
+        const ids = res.data.data.map(item => Number(item.job_id));
+
+        setAppliedJobs(ids);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  fetchAppliedJobs();
+}, []);
 
 return (
     <div className="min-h-screen bg-background">
@@ -332,15 +362,15 @@ return (
 
                   {/* Salary */}
                  <FilterSection title="Salary Range">
-  {salaryRanges.map(range => (
-    <CheckboxItem
-      key={range}
-      label={range}
-      checked={selectedSalary.includes(range)} // ✅ dynamic
-      onChange={() => toggleFilter(selectedSalary, setSelectedSalary, range)} // ✅ clickable
-    />
-  ))}
-</FilterSection>
+              {salaryRanges.map(range => (
+                <CheckboxItem
+                  key={range}
+                  label={range}
+                  checked={selectedSalary.includes(range)} // ✅ dynamic
+                  onChange={() => toggleFilter(selectedSalary, setSelectedSalary, range)} // ✅ clickable
+                />
+              ))}
+            </FilterSection>
 
                   {/* Category */}
                   {/* <FilterSection title="Category" noBorder>
@@ -420,15 +450,20 @@ return (
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                         <div className="flex items-start space-x-4 flex-1 min-w-0">
                           {/* Logo */}
-                          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-2xl flex-shrink-0 shadow-sm">
-                           
-                    <img
-  src={job.image}
-  alt={job.company_name}
-  className="w-full h-full object-cover"
-/>
-
-                          </div>
+                         <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden">
+  {job.logo ? (
+    <img
+      src={job.logo}
+      alt={job.company}
+      className="w-full h-full object-cover"
+      onError={(e) => (e.target.style.display = "none")} // ✅ fallback if broken
+    />
+  ) : (
+    <span className="text-2xl font-bold text-blue-700">
+      {job.company_name?.charAt(0)?.toUpperCase() || "?"}
+    </span>
+  )}
+</div>
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2 mb-1">
@@ -485,27 +520,38 @@ return (
                         </div> */}
 
 
+                        
 
-                        {appliedJobs.includes(job.id) ? (
-              <button className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-gray-200 text-gray-600 cursor-not-allowed">
-                ✓ Applied
-              </button>
-            ) : (
-              <ApplyNowPaymentModal
-                jobId={job.id}
-                feeAmount={5}
-                feeLabel="Application Fee"
-                paymentPath="/payment"
-                triggerLabel="Apply Now"
-                triggerClassName="px-5 py-2.5 rounded-xl text-sm font-semibold text-white hover:shadow-md hover:scale-[1.03]"
-                triggerStyle={{ background: 'var(--gradient-primary)' }}
-                
-                // 🔥 IMPORTANT CALLBACK
-                onSuccess={() => {
-                  setAppliedJobs(prev => [...prev, job.id]);
-                }}
-              />
-            )}
+{appliedJobs.includes(job.id) ? (
+
+  <button className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-gray-200 text-gray-600 cursor-not-allowed">
+    Already Applied
+  </button>
+) : !token ? (
+  <button
+    onClick={() => navigate(`/jobs/${job.id}`)}
+    className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white hover:shadow-md hover:scale-[1.03]"
+    style={{ background: 'var(--gradient-primary)' }}
+  >
+    View Job
+  </button>
+) : (
+  <ApplyNowPaymentModal
+    jobId={job.id}
+    feeAmount={5}
+    feeLabel="Application Fee"
+    paymentPath="/payment"
+    triggerLabel="Apply Now"
+    triggerClassName="px-5 py-2.5 rounded-xl text-sm font-semibold text-white hover:shadow-md hover:scale-[1.03]"
+    triggerStyle={{ background: 'var(--gradient-primary)' }}
+    onSuccess={() => {
+      setAppliedJobs(prev => [...prev, job.id]);
+    }}
+  />
+)}
+
+
+
                       </div>
                     </Link>
                   </motion.div>

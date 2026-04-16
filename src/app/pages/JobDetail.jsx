@@ -1,10 +1,12 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link ,useNavigate} from 'react-router-dom';
 import { MapPin, Briefcase, DollarSign, Clock, Building2, Users, ChevronRight, Bookmark, Share2, CheckCircle, Globe, Star, Award } from 'lucide-react';
 import { motion } from 'motion/react';
 
 import { ApplyNowPaymentModal } from '../components/ApplyNowPaymentModal.jsx';
 import { useEffect, useState } from "react";
 import api from "../../utils/api.js";
+
+
 
 
 // const relatedsafeJob = [
@@ -18,6 +20,8 @@ const tabs = ['Overview', 'Responsibilities', 'Requirements', 'Benefits'];
 export  function JobDetail() {
 
   const { id } = useParams();
+
+  const navigate = useNavigate();
 
 const [safeJob, setsafeJob] = useState(null);
 const [relatedsafeJob, setRelatedsafeJob] = useState([]);
@@ -40,11 +44,24 @@ const [loadingApplyStatus, setLoadingApplyStatus] = useState(true);
 }, [id]);
 
 
+
+
+
+
+
 useEffect(() => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    setLoadingApplyStatus(false);
+    setAlreadyApplied(false);
+    return; // ❌ STOP API CALL
+  }
+
   const checkApplied = async () => {
     try {
       const res = await api.post("/candidate/check-applied", {
-       job_id: id, // 🔥 must pass
+        job_id: id,
       });
 
       setAlreadyApplied(res.data.already_applied);
@@ -174,7 +191,14 @@ const handleSave = async () => {
 };
 
 
+
+
+
 useEffect(() => {
+  const token = localStorage.getItem("token");
+
+  if (!token) return; // ❌ STOP
+
   if (!safeJob?.id) return;
 
   const checkSaved = async () => {
@@ -188,7 +212,6 @@ useEffect(() => {
 
   checkSaved();
 }, [safeJob?.id]);
-
 
 if (loading || !safeJob) {
   return <div className="p-10 text-center">Loading safeJob...</div>;
@@ -228,11 +251,20 @@ if (loading || !safeJob) {
               <div className="p-6">
                 <div className="flex items-start justify-between flex-wrap gap-4 mb-5">
                   <div className="flex items-start space-x-4">
-                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-4xl flex-shrink-0 shadow-sm">
-                    {safeJob?.company?.image ? (
-                      <img src={safeJob.company.image} className="w-full h-full object-cover" />
-                    ) : '🏢'}
-                    </div>
+                   <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden">
+  {safeJob?.company?.logo ? (
+    <img
+      src={safeJob.company.logo}
+      alt={safeJob.company.company_name}
+      className="w-full h-full object-cover"
+      onError={(e) => (e.target.style.display = "none")} // fallback if broken
+    />
+  ) : (
+    <span className="text-3xl font-bold text-blue-700">
+      {safeJob?.company?.company_name?.charAt(0)?.toUpperCase() || "?"}
+    </span>
+  )}
+</div>
                     <div>
                       <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">{safeJob.title}</h1>
                       <p className="text-muted-foreground font-medium flex items-center space-x-1.5">
@@ -474,6 +506,16 @@ if (loading || !safeJob) {
   >
     ✓ Already Applied
   </button>
+) : 
+
+ !localStorage.getItem("token") ? (
+  <button
+    onClick={() => navigate("/candidate/login")}
+    className="w-full py-3.5 rounded-xl font-bold text-sm mb-3 text-white hover:shadow-lg hover:scale-[1.02]"
+    style={{ background: 'var(--gradient-primary)' }}
+  >
+    Login to Apply
+  </button>
 ) : (
   <ApplyNowPaymentModal
     feeAmount={5}
@@ -484,7 +526,8 @@ if (loading || !safeJob) {
     triggerClassName="w-full py-3.5 rounded-xl font-bold text-sm mb-3 text-white hover:shadow-lg hover:scale-[1.02]"
     triggerStyle={{ background: 'var(--gradient-primary)' }}
   />
-)}
+)
+}
               <button
                 onClick={() => setSaved(!saved)}
                 className={`w-full py-3 rounded-xl font-semibold text-sm transition-all border ${
@@ -532,9 +575,20 @@ if (loading || !safeJob) {
             >
               <h3 className="text-lg font-bold text-foreground mb-4">About the Company </h3>
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-2xl">
-                  {safeJob.logo}
-                </div>
+               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center overflow-hidden">
+  {safeJob?.company?.logo ? (
+    <img
+      src={safeJob.company.logo}
+      alt={safeJob.company?.company_name}
+      className="w-full h-full object-cover"
+      onError={(e) => (e.target.style.display = "none")}
+    />
+  ) : (
+    <span className="text-xl font-bold text-blue-700">
+      {safeJob?.company?.company_name?.charAt(0)?.toUpperCase() || "?"}
+    </span>
+  )}
+</div>
                 <div>
                   <h4 className="font-bold text-foreground">{safeJob?.company?.company_name}</h4>
                   <div className="flex items-center space-x-1">

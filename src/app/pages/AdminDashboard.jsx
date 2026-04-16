@@ -1,35 +1,14 @@
-import { useState } from 'react';
+import { useState,useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Shield, CheckCircle, XCircle, Clock, Building2, Mail, Phone, Globe, LogOut, Users, Briefcase, Bell, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext.jsx';
+import api from '../../utils/api.js';
 
-const REQUESTS_KEY = 'rwj_company_requests';
-const USERS_KEY = 'rwj_users';
-const NOTIFICATIONS_KEY = 'rwj_notifications';
 
-function getRequests() {
-  try { return JSON.parse(localStorage.getItem(REQUESTS_KEY) || '[]'); } catch { return []; }
-}
-function saveRequests(reqs) {
-  localStorage.setItem(REQUESTS_KEY, JSON.stringify(reqs));
-}
-function getUsers() {
-  try { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch { return []; }
-}
-function saveUsers(users) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
-function getNotifications() {
-  try { return JSON.parse(localStorage.getItem(NOTIFICATIONS_KEY) || '[]'); } catch { return []; }
-}
-function saveNotifications(notifs) {
-  localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(notifs));
-}
 
-function formatDate(iso) {
-  return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
+
+
 
 const STATUS_STYLES = {
   pending: 'bg-amber-50 text-amber-700 border-amber-200',
@@ -43,85 +22,75 @@ const STATUS_ICONS = {
 };
 
 export function AdminDashboard() {
+
+
+  const [requests, setRequests] = useState([]);
+const [stats, setStats] = useState({});
+const [pagination, setPagination] = useState({});
+
+
+
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [requests, setRequests] = useState(getRequests);
+
   const [filter, setFilter] = useState('all');
   const [expandedId, setExpandedId] = useState(null);
   const [actionMsg, setActionMsg] = useState('');
 
-  const counts = {
-    all: requests.length,
-    pending: requests.filter(r => r.status === 'pending').length,
-    approved: requests.filter(r => r.status === 'approved').length,
-    rejected: requests.filter(r => r.status === 'rejected').length,
-  };
+ const counts = stats;
 
-  const filtered = filter === 'all' ? requests : requests.filter(r => r.status === filter);
+const filtered = requests;
+const approveRequest = async (req) => {
+  await api.post(`/admin/company-requests/${req.id}/approve`);
 
-  const approveRequest = (req) => {
-    // 1. Update request status
-    const updated = requests.map(r => r.id === req.id ? { ...r, status: 'approved', approvedAt: new Date().toISOString() } : r);
-    setRequests(updated);
-    saveRequests(updated);
+  fetchRequests(); // reload
 
-    // 2. Create employer user account
-    const users = getUsers();
-    if (!users.find(u => u.email === req.email)) {
-      const newUser = {
-        id: Date.now(),
-        name: `${req.companyName} (${req.contactName})`,
-        email: req.email,
-        password: req.password,
-        role: 'employer',
-        approvalStatus: 'approved',
-        companyName: req.companyName,
-      };
-      saveUsers([...users, newUser]);
-    } else {
-      // Update existing user's approval status
-      saveUsers(users.map(u => u.email === req.email ? { ...u, approvalStatus: 'approved' } : u));
+  setActionMsg(`✓ ${req.companyName} approved`);
+};
+
+
+const rejectRequest = async (req) => {
+  await api.post(`/admin/company-requests/${req.id}/reject`);
+
+  fetchRequests();
+
+  setActionMsg(`✗ ${req.companyName} rejected`);
+};
+
+
+
+  useEffect(() => {
+  fetchRequests();
+}, []);
+
+const fetchRequests = async (page = 1, status = 'all') => {
+  try {
+    const res = await api.get("/admin/dashboard", {
+      params: { page, status }
+    });
+
+    if (res.data.success) {
+      setRequests(res.data.data);
+      setStats(res.data.stats);
+      setPagination(res.data.pagination);
     }
+  } catch (err) {
+    console.error(err);
+  }
+};
 
-    // 3. Create notification for the company
-    const notifs = getNotifications();
-    const notif = {
-      id: `notif_${Date.now()}`,
-      recipientEmail: req.email,
-      type: 'approval',
-      title: 'Your Company Registration is Approved!',
-      message: `Congratulations! Your company "${req.companyName}" has been approved on RigWorldJobs. You can now log in and start posting jobs.`,
-      credentials: { email: req.email, password: req.password },
-      createdAt: new Date().toISOString(),
-      read: false,
-    };
-    saveNotifications([notif, ...notifs]);
 
-    setActionMsg(`✓ ${req.companyName} approved. Credentials sent.`);
-    setTimeout(() => setActionMsg(''), 3000);
-  };
+function formatDate(date) {
+  if (!date) return "N/A";
 
-  const rejectRequest = (req) => {
-    const updated = requests.map(r => r.id === req.id ? { ...r, status: 'rejected', rejectedAt: new Date().toISOString() } : r);
-    setRequests(updated);
-    saveRequests(updated);
-
-    // Notify company of rejection
-    const notifs = getNotifications();
-    const notif = {
-      id: `notif_${Date.now()}`,
-      recipientEmail: req.email,
-      type: 'rejection',
-      title: 'Company Registration Update',
-      message: `We're sorry, your registration request for "${req.companyName}" was not approved at this time. Please contact support for more information.`,
-      createdAt: new Date().toISOString(),
-      read: false,
-    };
-    saveNotifications([notif, ...notifs]);
-
-    setActionMsg(`✗ ${req.companyName} rejected.`);
-    setTimeout(() => setActionMsg(''), 3000);
-  };
+  return new Date(date).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -276,53 +245,76 @@ export function AdminDashboard() {
 
                   {/* Expanded details */}
                   <AnimatePresence>
-                    {isExpanded && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden border-t border-slate-100"
-                      >
-                        <div className="p-5 bg-slate-50 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                          {req.phone && (
-                            <div className="flex items-center space-x-2 text-slate-600">
-                              <Phone className="w-4 h-4 text-slate-400" />
-                              <span>{req.phone}</span>
-                            </div>
-                          )}
-                          {req.website && (
-                            <div className="flex items-center space-x-2 text-slate-600">
-                              <Globe className="w-4 h-4 text-slate-400" />
-                              <span>{req.website}</span>
-                            </div>
-                          )}
-                          {req.industry && (
-                            <div className="flex items-center space-x-2 text-slate-600">
-                              <Briefcase className="w-4 h-4 text-slate-400" />
-                              <span>{req.industry}</span>
-                            </div>
-                          )}
-                          <div className="flex items-center space-x-2 text-slate-600">
-                            <Mail className="w-4 h-4 text-slate-400" />
-                            <span>{req.email}</span>
-                          </div>
-                          {req.message && (
-                            <div className="sm:col-span-2 bg-white border border-slate-200 rounded-xl p-3.5">
-                              <p className="text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Message</p>
-                              <p className="text-slate-700 leading-relaxed">{req.message}</p>
-                            </div>
-                          )}
-                          {req.status === 'approved' && (
-                            <div className="sm:col-span-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3.5">
-                              <p className="text-xs font-semibold text-emerald-700 mb-1">Credentials sent to company</p>
-                              <p className="text-sm text-emerald-800">Email: <span className="font-mono font-semibold">{req.email}</span></p>
-                              <p className="text-sm text-emerald-800">Password: <span className="font-mono font-semibold">{req.password}</span></p>
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
+                   {isExpanded && (
+  <motion.div
+    initial={{ height: 0, opacity: 0 }}
+    animate={{ height: 'auto', opacity: 1 }}
+    exit={{ height: 0, opacity: 0 }}
+    transition={{ duration: 0.2 }}
+    className="overflow-hidden border-t border-slate-100"
+  >
+    <div className="p-5 bg-slate-50 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+
+      {/* Phone */}
+      {req.phone && (
+        <div className="flex items-center space-x-2 text-slate-600">
+          <Phone className="w-4 h-4 text-slate-400" />
+          <span>{req.phone}</span>
+        </div>
+      )}
+
+      {/* Website */}
+      {req.website && (
+        <div className="flex items-center space-x-2 text-slate-600">
+          <Globe className="w-4 h-4 text-slate-400" />
+          <span>{req.website}</span>
+        </div>
+      )}
+
+      {/* ✅ FIXED INDUSTRY */}
+      {req.industry?.name && (
+        <div className="flex items-center space-x-2 text-slate-600">
+          <Briefcase className="w-4 h-4 text-slate-400" />
+          <span>{req.industry.name}</span>
+        </div>
+      )}
+
+      {/* Email */}
+      <div className="flex items-center space-x-2 text-slate-600">
+        <Mail className="w-4 h-4 text-slate-400" />
+        <span>{req.email || "N/A"}</span>
+      </div>
+
+      {/* Message */}
+      {req.message && (
+        <div className="sm:col-span-2 bg-white border border-slate-200 rounded-xl p-3.5">
+          <p className="text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">
+            Message
+          </p>
+          <p className="text-slate-700 leading-relaxed">
+            {req.message}
+          </p>
+        </div>
+      )}
+
+      {/* Approved Info */}
+      {req.status === 'approved' && (
+        <div className="sm:col-span-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3.5">
+          <p className="text-xs font-semibold text-emerald-700 mb-1">
+            Credentials sent to company
+          </p>
+          <p className="text-sm text-emerald-800">
+            Email: <span className="font-mono font-semibold">{req.email || "N/A"}</span>
+          </p>
+          <p className="text-sm text-emerald-800">
+            Password: <span className="font-mono font-semibold">{req.password || "N/A"}</span>
+          </p>
+        </div>
+      )}
+
+    </div>
+  </motion.div>
+)}
                   </AnimatePresence>
                 </motion.div>
               );
@@ -330,6 +322,22 @@ export function AdminDashboard() {
           </div>
         )}
       </div>
+
+      <div className="flex justify-center mt-6 gap-2">
+  {[...Array(pagination.last_page || 1)].map((_, i) => (
+    <button
+      key={i}
+      onClick={() => fetchRequests(i + 1)}
+      className={`px-3 py-1 rounded ${
+        pagination.current_page === i + 1
+          ? "bg-black text-white"
+          : "bg-gray-200"
+      }`}
+    >
+      {i + 1}
+    </button>
+  ))}
+</div>
     </div>
   );
 }

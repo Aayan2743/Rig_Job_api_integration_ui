@@ -53,6 +53,8 @@ const fetchSavedJobs = async (page = 1) => {
     });
 
     if (res.data.success) {
+
+      console.log("Raw API response:", res.data);
       setSavedJobs(res.data.data);
       setPagination(res.data.pagination);
     }
@@ -110,6 +112,7 @@ const removeJob = async (id) => {
           <div className="space-y-4">
             <AnimatePresence>
               {filtered.map((job, index) => (
+                console.log(job.logo),
                 <motion.div
                   key={job.id}
                   initial={{ opacity: 0, y: 16 }}
@@ -126,7 +129,7 @@ const removeJob = async (id) => {
   
   {job.logo ? (
     <img
-      src={job.logo}
+      src={job?.logo}
       alt={job.company}
       className="w-full h-full object-cover rounded-xl"
     />
@@ -159,14 +162,15 @@ const removeJob = async (id) => {
                         </div>
                       </div>
                       <div className="flex flex-col gap-2 flex-shrink-0">
-                        <ApplyNowPaymentModal
+                        {/* <ApplyNowPaymentModal
                           feeAmount={5}
+                          jobId={job.id}
                           feeLabel="Application Fee"
                           paymentPath="/payment"
                           triggerLabel="Apply Now"
                           triggerClassName="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:shadow-md hover:scale-[1.02] shine-effect text-center"
                           triggerStyle={{ background: 'var(--gradient-primary)' }}
-                        />
+                        /> */}
                         <button onClick={() => removeJob(job.id)}
                           className="flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl text-sm font-medium border border-border text-muted-foreground hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all">
                           <Bookmark className="w-3.5 h-3.5" /><span>Unsave</span>

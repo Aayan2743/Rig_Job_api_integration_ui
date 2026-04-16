@@ -47,6 +47,7 @@ import { AdminLayout } from "./components/AdminLayout.jsx";
 import AdminSettings from "./pages/AdminSettings.jsx";
 import { GuestRoute } from "./components/GuestRoute.jsx";
 import EditJob from "./pages/EditJob.jsx";
+import AuthSuccess from "./context/AuthSuccess.jsx";
 
 export const router = createBrowserRouter([
 
@@ -56,6 +57,7 @@ export const router = createBrowserRouter([
     Component: Layout,
     children: [
       { index: true, Component: Home },
+         { path: "auth-success", element: <AuthSuccess /> },
       { path: "jobs",                Component: Jobs },
       { path: "jobs/:id",            Component: JobDetail },
       { path: "about",               Component: About },

@@ -2,17 +2,10 @@ import { Link } from 'react-router-dom';
 import { Briefcase, Bookmark, MapPin, TrendingUp, ChevronRight, Eye } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
+import api from "../../utils/api";
 
-const mockStats = { totalApplications: 4, savedJobs: 3, profileViews: 128 };
-const mockApplications = [
-  { jobTitle: 'Senior Drilling Engineer', company: 'Shell Energy', location: 'Houston, TX', status: 'shortlisted' },
-  { jobTitle: 'HSE Coordinator', company: 'BP Operations', location: 'Aberdeen, UK', status: 'applied' },
-  { jobTitle: 'Rig Supervisor', company: 'Chevron', location: 'Gulf of Mexico', status: 'applied' },
-];
-const mockSavedJobs = [
-  { _id: '1', job_id: { _id: '1', title: 'Process Engineer', company: 'ExxonMobil', location: 'Singapore', salary: '$95k–$140k' } },
-  { _id: '2', job_id: { _id: '2', title: 'Maintenance Engineer', company: 'Equinor', location: 'Oslo, Norway', salary: '$85k–$115k' } },
-];
+
+
 
 const notifications = [
   { id: 1, message: 'Interview scheduled for Safety Manager at BP Operations', time: '2 hours ago', unread: true, type: 'interview' },
@@ -38,14 +31,70 @@ export function CandidateDashboard() {
   const [loadingApps, setLoadingApps] = useState(true);
   const [loadingSaved, setLoadingSaved] = useState(true);
 
-  useEffect(() => {
-    setStats(mockStats);
+
+
+
+  const fetchStats = async () => {
+  try {
+    const res = await api.get("/candidate/dashboard");
+    if (res.data.success) {
+      setStats(res.data.data);
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
     setLoadingStats(false);
-    setRecentApplications(mockApplications);
+  }
+};
+
+
+const fetchApplications = async () => {
+  try {
+    const res = await api.get("/candidate/recent-applications");
+    if (res.data.success) {
+      setRecentApplications(res.data.data);
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
     setLoadingApps(false);
-    setSavedJobs(mockSavedJobs);
+  }
+};
+
+
+
+const fetchSavedJobs = async () => {
+  try {
+    const res = await api.get("/candidate/saved-jobs");
+    if (res.data.success) {
+      setSavedJobs(res.data.data);
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
     setLoadingSaved(false);
-  }, []);
+  }
+};
+
+const mapStatus = (status) => {
+  switch (status) {
+    case "New":
+      return "applied";
+    case "Shortlisted":
+      return "shortlisted";
+    case "Rejected":
+      return "rejected";
+    default:
+      return "applied";
+  }
+};
+
+
+useEffect(() => {
+  fetchStats();
+  fetchApplications();
+  fetchSavedJobs();
+}, []);
 
   return (
     <div className="space-y-6">
@@ -96,7 +145,8 @@ export function CandidateDashboard() {
         ) : (
           <div className="divide-y divide-border/50">
             {recentApplications.map((app, index) => {
-              const sc = statusConfig[app.status];
+              // const sc = statusConfig[app.status];
+              const sc = statusConfig[app.status] || statusConfig['applied'];
               return (
                 <motion.div
                   key={`${app.jobTitle}-${index}`}
@@ -105,12 +155,15 @@ export function CandidateDashboard() {
                   transition={{ delay: index * 0.1 }}
                   className="flex items-start p-5 hover:bg-muted/20 transition-colors"
                 >
-                  <div
-                    className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 mr-4"
-                    style={{ background: 'var(--gradient-primary)' }}
-                  >
-                    {(app.company?.[0] || 'J').toUpperCase()}
-                  </div>
+                <div className="w-12 h-12 rounded-xl overflow-hidden bg-blue-50 flex items-center justify-center mr-4">
+  {app.logo ? (
+    <img src={app.logo} className="w-full h-full object-cover" />
+  ) : (
+    <span className="font-bold">
+      {app.company?.charAt(0)}
+    </span>
+  )}
+</div>
                   <div className="flex-1 min-w-0">
                     <Link to="/candidate/applications" className="text-base font-bold text-foreground hover:text-primary transition-colors">{app.jobTitle}</Link>
                     <p className="text-sm text-muted-foreground mb-2">{app.company}</p>
@@ -153,19 +206,19 @@ export function CandidateDashboard() {
                 transition={{ delay: index * 0.1 }}
                 whileHover={{ y: -3 }}
               >
-                <Link to={`/jobs/${saved.job_id._id}`} className="block border border-border/60 rounded-xl p-4 hover:shadow-md hover:border-primary/20 transition-all group">
+                <Link to={`/jobs/${saved.id}`} className="block border border-border/60 rounded-xl p-4 hover:shadow-md hover:border-primary/20 transition-all group">
                   <div className="flex items-start space-x-3 mb-3">
                     <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-xs font-bold text-primary">
-                      {(saved.job_id.company?.[0] || 'J').toUpperCase()}
+                      {(saved.id.company?.[0] || 'J').toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-foreground group-hover:text-primary transition-colors text-sm truncate">{saved.job_id.title}</h3>
-                      <p className="text-xs text-muted-foreground">{saved.job_id.company}</p>
+                      <h3 className="font-bold text-foreground group-hover:text-primary transition-colors text-sm truncate">{saved.title}</h3>
+                      <p className="text-xs text-muted-foreground">{saved.company}</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground flex items-center space-x-1"><MapPin className="w-3 h-3" /><span>{saved.job_id.location}</span></span>
-                    <span className="text-emerald-600 font-bold">{saved.job_id.salary}</span>
+                    <span className="text-muted-foreground flex items-center space-x-1"><MapPin className="w-3 h-3" /><span>{saved.location}</span></span>
+                    <span className="text-emerald-600 font-bold">{saved.salary}</span>
                   </div>
                 </Link>
               </motion.div>

@@ -272,10 +272,10 @@ if (loading || !company) {
                 {[
                   { icon: Building2, label: 'Industry', value: company.industry },
                   { icon: Users, label: 'Employees', value: company.employees },
-                  { icon: Calendar, label: 'Founded', value: company.founded.toString() },
+                  { icon: Calendar, label: 'Founded',value: company.founded ? company.founded.toString() : "N/A" },
                   { icon: Globe, label: 'Website', value: company.website },
                   { icon: MapPin, label: 'Headquarters', value: company.location },
-                  { icon: Briefcase, label: 'Open Roles', value: company.openJobs.toString() },
+                  { icon: Briefcase, label: 'Open Roles', value: company.openJobs ? company.openJobs.toString() : "0" },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="flex items-start space-x-3">
                     <div className="w-9 h-9 rounded-lg bg-primary/8 flex items-center justify-center flex-shrink-0 mt-0.5">

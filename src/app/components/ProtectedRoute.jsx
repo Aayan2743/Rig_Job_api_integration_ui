@@ -40,6 +40,122 @@
 // }
 
 
+
+
+// export function ProtectedRoute({
+//   children,
+//   allowedRoles,
+//   redirectTo,
+//   requireCompany,
+//   requireNoCompany
+// }) {
+//   const { token, user } = useAuth();
+//   const location = useLocation();
+
+//   console.log("ProtectedRoute check:", { token, user, allowedRoles });
+
+//   // ── 1. Not logged in ──
+//   if (!token || !user) {
+//     const fallback = redirectTo ?? '/candidate/login';
+//     return <Navigate to={fallback} replace state={{ from: location.pathname }} />;
+//   }
+
+//   // ── 2. Role mismatch ──
+//   if (allowedRoles && !allowedRoles.includes(user.role)) {
+//     // 🔥 correct redirects
+//     if (user.role === 'admin') {
+//       return <Navigate to="/admin/dashboard" replace />;
+//     }
+
+//     if (user.role === 'employer') {
+//       return user.companyName
+//         ? <Navigate to="/company/dashboard" replace />
+//         : <Navigate to="/employer/dashboard" replace />;
+//     }
+
+//     if (user.role === 'candidate') {
+//       return <Navigate to="/candidate/dashboard" replace />;
+//     }
+
+//     return <Navigate to="/" replace />;
+//   }
+
+//   // ── 3. Company restriction ──
+//   if (requireNoCompany && user?.companyName) {
+//     return <Navigate to="/company/dashboard" replace />;
+//   }
+
+//   // ── 4. Employer without company ──
+//   if (requireCompany && !user?.companyName) {
+//     return <Navigate to="/employer/dashboard" replace />;
+//   }
+
+//   return children;
+// }
+
+
+// import { Navigate, useLocation } from 'react-router-dom';
+// import { useAuth } from '../context/AuthContext.jsx';
+
+
+
+
+
+// export function ProtectedRoute({
+//   children,
+//   allowedRoles,
+//   redirectTo,
+//   requireCompany,
+//   requireNoCompany
+// }) {
+//   const { token, user } = useAuth();
+//   const location = useLocation();
+
+//   console.log("ProtectedRoute check:", { token, user, allowedRoles });
+
+//   // ── 1. Not logged in ──
+//   if (!token) {
+//     const fallback = redirectTo ?? '/candidate/login';
+//     return <Navigate to={fallback} replace state={{ from: location.pathname }} />;
+//   }
+
+//   // ── 2. Role mismatch ──
+//   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+//     if (user.role === 'admin') {
+//       return <Navigate to="/admin/dashboard" replace />;
+//     }
+
+//     if (user.role === 'employer') {
+//       return user.companyName
+//         ? <Navigate to="/company/dashboard" replace />
+//         : <Navigate to="/employer/dashboard" replace />;
+//     }
+
+//     if (user.role === 'candidate') {
+//       return <Navigate to="/candidate/dashboard" replace />;
+//     }
+
+//     return <Navigate to="/" replace />;
+//   }
+
+//   // ── 3. Company restriction ──
+//   if (requireNoCompany && user?.companyName) {
+//     return <Navigate to="/company/dashboard" replace />;
+//   }
+
+//   // ── 4. Employer without company ──
+//   if (requireCompany && !user?.companyName) {
+//     return <Navigate to="/employer/dashboard" replace />;
+//   }
+
+//   return children;
+// }
+
+
+
+
+
+
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -53,28 +169,35 @@ export function ProtectedRoute({
   const { token, user } = useAuth();
   const location = useLocation();
 
-  console.log("ProtectedRoute check:", { token, user, allowedRoles });
+  // 🔥 fallback from localStorage (VERY IMPORTANT)
+  const localToken = localStorage.getItem("token");
+  const localUser = JSON.parse(localStorage.getItem("user") || "null");
+
+  const finalToken = token || localToken;
+
+  const finalUser = user || localUser;
+  const role = finalUser?.role === "user" ? "candidate" : finalUser?.role;
+  console.log("ProtectedRoute:", { finalToken, finalUser });
 
   // ── 1. Not logged in ──
-  if (!token || !user) {
+  if (!finalToken) {
     const fallback = redirectTo ?? '/candidate/login';
     return <Navigate to={fallback} replace state={{ from: location.pathname }} />;
   }
 
   // ── 2. Role mismatch ──
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // 🔥 correct redirects
-    if (user.role === 'admin') {
+ if (allowedRoles && role && !allowedRoles.includes(role)) {
+    if (role === 'admin') {
       return <Navigate to="/admin/dashboard" replace />;
     }
 
-    if (user.role === 'employer') {
-      return user.companyName
+    if (role === 'employer') {
+      return finalUser.companyName
         ? <Navigate to="/company/dashboard" replace />
         : <Navigate to="/employer/dashboard" replace />;
     }
 
-    if (user.role === 'candidate') {
+    if (role === 'candidate') {
       return <Navigate to="/candidate/dashboard" replace />;
     }
 
@@ -82,12 +205,12 @@ export function ProtectedRoute({
   }
 
   // ── 3. Company restriction ──
-  if (requireNoCompany && user?.companyName) {
+  if (requireNoCompany && finalUser?.companyName) {
     return <Navigate to="/company/dashboard" replace />;
   }
 
   // ── 4. Employer without company ──
-  if (requireCompany && !user?.companyName) {
+  if (requireCompany && !finalUser?.companyName) {
     return <Navigate to="/employer/dashboard" replace />;
   }
 

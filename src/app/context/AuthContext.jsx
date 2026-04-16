@@ -15,6 +15,9 @@ export function AuthProvider({ children }) {
     try { return JSON.parse(raw); } catch { return null; }
   });
 
+
+
+
   const [token, setToken] = useState(() => localStorage.getItem('token'));
 
   //  attach token on reload
@@ -36,6 +39,15 @@ export function AuthProvider({ children }) {
     setUser(newUser);
   };
 
+
+    const [ready, setReady] = useState(false);
+
+useEffect(() => {
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  }
+  setReady(true); // 🔥 important
+}, [token]);
   //  LOGOUT
   const logout = () => {
     localStorage.removeItem('token');
@@ -47,6 +59,8 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+
+
   return (
     <AuthContext.Provider
       value={{
@@ -54,7 +68,8 @@ export function AuthProvider({ children }) {
         token,
         login,
         logout,
-        isAuthenticated: !!token
+        isAuthenticated: !!token,
+         ready
       }}
     >
       {children}

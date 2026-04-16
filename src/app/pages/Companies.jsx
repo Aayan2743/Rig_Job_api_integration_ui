@@ -1,41 +1,64 @@
-import { useState } from 'react';
+import { useState,useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, MapPin, Briefcase, ChevronRight, Star, Users, Globe, TrendingUp, SlidersHorizontal, X } from 'lucide-react';
 import { motion } from 'motion/react';
 
-const allCompanies = [
-  { id: 1, name: 'Shell Energy', slug: 'shell-energy', logo: '🛢️', industry: 'Upstream O&G', location: 'Houston, TX', employees: '82,000+', openJobs: 45, rating: 4.4, founded: 1907, description: 'One of the world\'s largest energy companies, operating in exploration, production, refining, and marketing.', verified: true, tags: ['Deepwater', 'LNG', 'Renewables'] },
-  { id: 2, name: 'BP Operations', slug: 'bp-operations', logo: '⚡', industry: 'Integrated O&G', location: 'London, UK', employees: '70,000+', openJobs: 38, rating: 4.2, founded: 1909, description: 'Global energy company focused on upstream, downstream, and alternative energy operations.', verified: true, tags: ['Offshore', 'Refining', 'Solar'] },
-  { id: 3, name: 'Chevron', slug: 'chevron', logo: '🌊', industry: 'Upstream O&G', location: 'San Ramon, CA', employees: '43,000+', openJobs: 52, rating: 4.5, founded: 1879, description: 'Leading integrated energy company with major operations in the Gulf of Mexico and Asia Pacific.', verified: true, tags: ['Gulf of Mexico', 'International'] },
-  { id: 4, name: 'ExxonMobil', slug: 'exxonmobil', logo: '🏭', industry: 'Integrated O&G', location: 'Irving, TX', employees: '63,000+', openJobs: 41, rating: 4.1, founded: 1870, description: 'World\'s largest publicly traded energy company with operations spanning exploration to chemicals.', verified: true, tags: ['Chemicals', 'LNG', 'Deepwater'] },
-  { id: 5, name: 'TotalEnergies', slug: 'totalenergies', logo: '☀️', industry: 'Energy Transition', location: 'Paris, France', employees: '100,000+', openJobs: 29, rating: 4.3, founded: 1924, description: 'French multinational pivoting from oil & gas to become a diversified multi-energy company.', verified: true, tags: ['Renewables', 'LNG', 'Offshore'] },
-  { id: 6, name: 'Equinor', slug: 'equinor', logo: '🔵', industry: 'Upstream O&G', location: 'Stavanger, Norway', employees: '21,000+', openJobs: 33, rating: 4.6, founded: 1972, description: 'Norwegian state oil company and major operator in the North Sea with offshore expertise.', verified: true, tags: ['North Sea', 'Offshore', 'Wind'] },
-  { id: 7, name: 'Halliburton', slug: 'halliburton', logo: '🔧', industry: 'Oilfield Services', location: 'Houston, TX', employees: '48,000+', openJobs: 67, rating: 3.9, founded: 1919, description: 'One of the world\'s largest oilfield services companies, providing products and services worldwide.', verified: true, tags: ['Services', 'Drilling', 'Completion'] },
-  { id: 8, name: 'Schlumberger (SLB)', slug: 'slb', logo: '⚙️', industry: 'Oilfield Services', location: 'Paris, France', employees: '86,000+', openJobs: 89, rating: 4.0, founded: 1926, description: 'Leading provider of technology for reservoir characterization, drilling, production, and processing.', verified: true, tags: ['Technology', 'Services', 'Digital'] },
-  { id: 9, name: 'Baker Hughes', slug: 'baker-hughes', logo: '🌐', industry: 'Oilfield Services', location: 'Houston, TX', employees: '57,000+', openJobs: 54, rating: 4.1, founded: 1907, description: 'International industrial technology company providing solutions for the energy and industrial sectors.', verified: true, tags: ['Technology', 'LNG', 'Turbines'] },
-  { id: 10, name: 'ConocoPhillips', slug: 'conocophillips', logo: '📊', industry: 'Upstream O&G', location: 'Houston, TX', employees: '9,900+', openJobs: 28, rating: 4.3, founded: 1917, description: 'Explores for, produces, and markets crude oil, natural gas, and natural gas liquids worldwide.', verified: true, tags: ['Unconventional', 'LNG', 'Alaska'] },
-  { id: 11, name: 'Weatherford', slug: 'weatherford', logo: '🌀', industry: 'Oilfield Services', location: 'Houston, TX', employees: '17,000+', openJobs: 35, rating: 3.8, founded: 1941, description: 'Multinational oilfield service company providing equipment and services to the oil and gas industry.', verified: false, tags: ['Drilling', 'Completion', 'Production'] },
-  { id: 12, name: 'Wood Group', slug: 'wood-group', logo: '🏗️', industry: 'Engineering Services', location: 'Aberdeen, UK', employees: '35,000+', openJobs: 42, rating: 4.0, founded: 1982, description: 'Global engineering and consultancy company operating across energy, process, and industrial sectors.', verified: true, tags: ['Engineering', 'Consultancy', 'EPC'] },
-];
+
+import api from "../../utils/api";
+
 
 const industries = ['All Industries', 'Upstream O&G', 'Integrated O&G', 'Oilfield Services', 'Energy Transition', 'Engineering Services'];
 const sizes = ['All Sizes', 'Small (< 5k)', 'Medium (5k–25k)', 'Large (25k–100k)', 'Enterprise (100k+)'];
 
 export function Companies() {
+
+  const [companies, setCompanies] = useState([]);
+const [pagination, setPagination] = useState({});
+const [loading, setLoading] = useState(false);
+
+
+
   const [search, setSearch] = useState('');
   const [selectedIndustry, setSelectedIndustry] = useState('All Industries');
   const [sortBy, setSortBy] = useState('Most Jobs');
 
-  const filtered = allCompanies.filter(c => {
-    if (selectedIndustry !== 'All Industries' && c.industry !== selectedIndustry) return false;
-    if (search && !c.name.toLowerCase().includes(search.toLowerCase()) && !c.location.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  }).sort((a, b) => {
-    if (sortBy === 'Most Jobs') return b.openJobs - a.openJobs;
-    if (sortBy === 'Highest Rated') return b.rating - a.rating;
-    if (sortBy === 'Alphabetical') return a.name.localeCompare(b.name);
-    return 0;
-  });
+
+
+  useEffect(() => {
+  fetchCompanies();
+}, [search, selectedIndustry, sortBy]);
+
+const fetchCompanies = async (page = 1) => {
+  setLoading(true);
+  try {
+    const res = await api.get("/companies/companies-all", {
+      params: {
+        search,
+        industry: selectedIndustry,
+        sort: sortBy,
+        page
+      }
+    });
+
+    // 🔥 IMPORTANT MAPPING
+    const mapped = res.data.data.map(c => ({
+      ...c,
+      industry: c.industry?.name || "N/A", // ✅ FIX
+      logo: c.logo || null,
+      tags: c.tags || []
+    }));
+
+    setCompanies(mapped);
+    setPagination(res.data.pagination);
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -67,7 +90,7 @@ export function Companies() {
           </div>
 
           <p className="mt-4 text-sm text-muted-foreground">
-            <span className="font-bold text-foreground">{filtered.length}</span> companies found
+            <span className="font-bold text-foreground">{companies.length}</span> companies found
           </p>
         </div>
       </div>
@@ -75,7 +98,7 @@ export function Companies() {
       {/* Company Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((company, index) => (
+          {companies.map((company, index) => (
             <motion.div
               key={company.id}
               initial={{ opacity: 0, y: 20 }}
@@ -89,9 +112,20 @@ export function Companies() {
                 {/* Header row */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-start space-x-3">
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-3xl flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                      {company.logo}
-                    </div>
+
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-3xl">
+  {company.logo ? (
+    <img
+      src={company.logo}
+      alt={company.name}
+      className="w-full h-full object-cover rounded-xl"
+    />
+  ) : (
+    "🏢"
+  )}
+</div>
+
+
                     <div>
                       <div className="flex items-center space-x-1.5">
                         <h2 className="font-bold text-foreground group-hover:text-primary transition-colors">{company.name}</h2>
@@ -127,9 +161,15 @@ export function Companies() {
 
                 {/* Tags */}
                 <div className="flex flex-wrap gap-1.5 mb-4">
-                  {company.tags.map(tag => (
-                    <span key={tag} className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{tag}</span>
-                  ))}
+                 {company.tags?.length > 0 && (
+  <div className="flex flex-wrap gap-1.5 mb-4">
+    {company.tags.map((tag, i) => (
+      <span key={i} className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+        {tag}
+      </span>
+    ))}
+  </div>
+)}
                 </div>
 
                 {/* Footer */}
@@ -146,7 +186,7 @@ export function Companies() {
           ))}
         </div>
 
-        {filtered.length === 0 && (
+        {companies.length === 0 && (
           <div className="text-center py-24 text-muted-foreground">
             <Globe className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p className="font-semibold text-lg">No companies match your search</p>
@@ -154,6 +194,19 @@ export function Companies() {
           </div>
         )}
       </div>
+
+
+      <div className="flex justify-center mt-6 gap-2">
+  {[...Array(pagination.last_page || 1)].map((_, i) => (
+    <button
+      key={i}
+      onClick={() => fetchCompanies(i + 1)}
+      className="px-3 py-1 border rounded"
+    >
+      {i + 1}
+    </button>
+  ))}
+</div>
     </div>
   );
 }
